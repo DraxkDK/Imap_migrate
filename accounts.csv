@@ -1,0 +1,3 @@
+source_email,source_username,source_password,target_email,target_username,target_password
+user1@old-domain.com,user1@old-domain.com,ChangeMe1!,user1@new-domain.com,user1@new-domain.com,ChangeMe1!
+user2@old-domain.com,user2@old-domain.com,ChangeMe2!,user2@new-domain.com,user2@new-domain.com,ChangeMe2!

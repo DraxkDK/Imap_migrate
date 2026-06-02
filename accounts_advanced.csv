@@ -1,0 +1,3 @@
+source_email,source_username,source_password,target_email,target_username,target_password,source_host,source_port,target_host,target_port,use_ssl
+user1@old-domain.com,user1@old-domain.com,ChangeMe1!,user1@new-domain.com,user1@new-domain.com,ChangeMe1!,mail.old-domain.com,993,mail.new-domain.com,993,true
+user2@old-domain.com,user2@old-domain.com,ChangeMe2!,user2@new-domain.com,user2@new-domain.com,ChangeMe2!,mail.old-domain.com,993,mail.new-domain.com,993,true

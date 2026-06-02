@@ -1,0 +1,16 @@
+# IMAP Migration Tool — Python dependencies
+# All packages below are part of the Python 3 standard library.
+# No third-party packages are required.
+#
+# Standard library modules used:
+#   imaplib, ssl, email, csv, sqlite3, argparse,
+#   logging, getpass, re, time, stat, dataclasses
+#
+# Python >= 3.8 required.
+# Python >= 3.10 recommended (better TLS defaults).
+#
+# To verify your Python version:
+#   python3 --version
+#
+# Optional: install tox / pytest for running the test suite.
+# pytest>=7.0
