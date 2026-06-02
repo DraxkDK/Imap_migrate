@@ -160,7 +160,8 @@ class JobManager:
                 os.makedirs(d, exist_ok=True)
 
         pairs = self._build_pairs(pairs_data)
-        reporter = Reporter(cfg.summary_report, cfg.failed_report, cfg.moved_report)
+        reporter = Reporter(cfg.summary_report, cfg.failed_report, cfg.moved_report,
+                            cfg.folders_report)
         state_db = StateDB(cfg.state_db)
         if not cfg.dry_run and not cfg.test_connection:
             state_db.open()
@@ -181,6 +182,10 @@ class JobManager:
                 reporter.write_summary(all_stats)
                 reporter.write_failed()
                 reporter.write_moved()
+                reporter.write_folders(all_stats)
+                if not cfg.dry_run:
+                    from src.report import export_items
+                    export_items(cfg.state_db, cfg.items_report)
                 t_fail = sum(s.total_failed for s in all_stats)
                 n_fail = sum(1 for s in all_stats if s.status == "failed")
                 msg = (

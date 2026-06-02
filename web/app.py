@@ -58,6 +58,8 @@ def _build_base_config() -> MigrationConfig:
     cfg.summary_report = os.path.join(report_dir, "migration_summary.csv")
     cfg.failed_report = os.path.join(report_dir, "failed_items.csv")
     cfg.moved_report = os.path.join(report_dir, "moved_items.csv")
+    cfg.folders_report = os.path.join(report_dir, "folders_report.csv")
+    cfg.items_report = os.path.join(report_dir, "items_report.csv")
     return cfg
 
 

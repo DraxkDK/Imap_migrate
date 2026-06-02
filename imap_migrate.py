@@ -183,7 +183,8 @@ def main() -> None:
 
     validate(cfg, pairs)
 
-    reporter = Reporter(cfg.summary_report, cfg.failed_report, cfg.moved_report)
+    reporter = Reporter(cfg.summary_report, cfg.failed_report, cfg.moved_report,
+                        cfg.folders_report)
     state_db = StateDB(cfg.state_db)
 
     if not cfg.dry_run and not cfg.test_connection:
@@ -209,7 +210,13 @@ def main() -> None:
     reporter.write_summary(all_stats)
     reporter.write_failed()
     reporter.write_moved()
+    reporter.write_folders(all_stats)
     state_db.close()
+
+    # Per-message detail is read back from the state DB (real runs only).
+    if not cfg.dry_run:
+        from src.report import export_items
+        export_items(cfg.state_db, cfg.items_report)
 
     # Final summary
     total   = len(all_stats)

@@ -26,6 +26,7 @@ bp = Blueprint("main", __name__)
 # we only ever join a *basename* onto a fixed, configured directory.
 _ALLOWED_REPORTS = {
     "migration_summary.csv", "failed_items.csv", "moved_items.csv",
+    "folders_report.csv", "items_report.csv",
 }
 
 
@@ -281,7 +282,8 @@ def run_job():
 def reports():
     cfg = current_app.config["BASE_MIGRATION_CONFIG"]
     files = []
-    for path in (cfg.summary_report, cfg.failed_report, cfg.moved_report):
+    for path in (cfg.summary_report, cfg.failed_report, cfg.moved_report,
+                 cfg.folders_report, cfg.items_report):
         if os.path.exists(path):
             files.append({
                 "name": os.path.basename(path),

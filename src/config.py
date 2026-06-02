@@ -77,6 +77,8 @@ class MigrationConfig:
     failed_report: str = "reports/failed_items.csv"
     summary_report: str = "reports/migration_summary.csv"
     moved_report: str = "reports/moved_items.csv"
+    folders_report: str = "reports/folders_report.csv"
+    items_report: str = "reports/items_report.csv"
 
     # --- Verbosity ---
     verbose: bool = False
@@ -188,6 +190,10 @@ ENVIRONMENT VARIABLES
     out.add_argument("--failed-report", default="reports/failed_items.csv")
     out.add_argument("--moved-report", default="reports/moved_items.csv")
     out.add_argument("--summary", dest="summary_report", default="reports/migration_summary.csv")
+    out.add_argument("--folders-report", default="reports/folders_report.csv",
+                     help="Per-folder breakdown CSV (one row per folder per mailbox)")
+    out.add_argument("--items-report", default="reports/items_report.csv",
+                     help="Per-message detail CSV (every message, from the state DB)")
     out.add_argument("--verbose", "-v", action="store_true")
 
     args = parser.parse_args()
@@ -233,6 +239,8 @@ ENVIRONMENT VARIABLES
     cfg.failed_report = args.failed_report
     cfg.moved_report = args.moved_report
     cfg.summary_report = args.summary_report
+    cfg.folders_report = args.folders_report
+    cfg.items_report = args.items_report
     cfg.verbose = args.verbose
 
     return cfg

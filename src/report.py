@@ -84,10 +84,12 @@ class Reporter:
         summary_path: str,
         failed_path: str,
         moved_path: str = "reports/moved_items.csv",
+        folders_path: str = "reports/folders_report.csv",
     ) -> None:
         self.summary_path = summary_path
         self.failed_path  = failed_path
         self.moved_path   = moved_path
+        self.folders_path = folders_path
         self._lock   = threading.Lock()
         self._failed: list = []
         self._moved:  list = []
@@ -202,9 +204,75 @@ class Reporter:
         except OSError as exc:
             logger.error("Cannot write moved report: %s", exc)
 
+    def write_folders(self, stats_list: Optional[List[MailboxStats]] = None) -> None:
+        """One row per folder per mailbox — the per-folder breakdown."""
+        rows = stats_list if stats_list is not None else self._stats
+        _ensure_dir(self.folders_path)
+        fields = [
+            "source_mailbox", "target_mailbox", "folder",
+            "total", "migrated", "skipped", "moved", "failed",
+        ]
+        try:
+            with open(self.folders_path, "w", newline="", encoding="utf-8") as fh:
+                w = csv.DictWriter(fh, fieldnames=fields)
+                w.writeheader()
+                for s in rows:
+                    for f in s.folders:
+                        w.writerow({
+                            "source_mailbox": s.source_mailbox,
+                            "target_mailbox": s.target_mailbox,
+                            "folder":         f.folder,
+                            "total":          f.total,
+                            "migrated":       f.migrated,
+                            "skipped":        f.skipped,
+                            "moved":          f.moved,
+                            "failed":         f.failed,
+                        })
+            logger.info("Folders report: %s", self.folders_path)
+        except OSError as exc:
+            logger.error("Cannot write folders report: %s", exc)
+
     @staticmethod
     def now_iso() -> str:
         return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def export_items(db_path: str, out_path: str) -> int:
+    """Dump every per-message record from the state DB to a detailed CSV.
+
+    Reads `migrated_messages` directly so we never hold the full message list
+    in memory. Returns the number of rows written (0 if the DB is missing).
+    """
+    if not db_path or not os.path.exists(db_path):
+        return 0
+    import sqlite3
+
+    _ensure_dir(out_path)
+    fields = [
+        "source_mailbox", "target_mailbox", "source_folder", "target_folder",
+        "source_uid", "target_uid", "message_id", "message_date",
+        "message_size", "status", "migration_time",
+    ]
+    n = 0
+    conn = sqlite3.connect(db_path, timeout=10)
+    try:
+        cur = conn.execute(
+            "SELECT source_mailbox, target_mailbox, source_folder, target_folder, "
+            "source_uid, target_uid, message_id, message_date, message_size, "
+            "status, migration_time FROM migrated_messages ORDER BY id"
+        )
+        with open(out_path, "w", newline="", encoding="utf-8") as fh:
+            w = csv.writer(fh)
+            w.writerow(fields)
+            for row in cur:
+                w.writerow(["" if v is None else v for v in row])
+                n += 1
+        logger.info("Items report: %s (%d row(s))", out_path, n)
+    except (sqlite3.Error, OSError) as exc:
+        logger.error("Cannot write items report: %s", exc)
+    finally:
+        conn.close()
+    return n
 
 
 def _ensure_dir(path: str) -> None:
