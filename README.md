@@ -430,4 +430,5 @@ The tool is modular. To add a new target platform:
 MIT License — use freely, at your own risk. No warranty.
 Always test on non-production mailboxes first.
 #   I m a p - M i g r a t e  
+ #   I m a p _ m i g r a t e  
  
