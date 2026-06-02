@@ -1,0 +1,22 @@
+# Secrets & data — never commit
+*.env
+/etc/imap-migrate-web.env
+web_app.db
+web_app.db-wal
+web_app.db-shm
+migration_state.db
+migration_state.db-wal
+migration_state.db-shm
+accounts.csv
+my_accounts.csv
+
+# Runtime output
+logs/
+reports/
+*.log
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/

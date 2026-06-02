@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<h1>Dashboard</h1>
+
+<section class="grid">
+  <div class="card stat">
+    <div class="stat-label">Accounts configured</div>
+    <div class="stat-value">{{ account_count }}</div>
+    {% if current_user['role'] in ('operator','admin') %}
+      <a href="{{ url_for('main.accounts') }}">Manage →</a>
+    {% endif %}
+  </div>
+  <div class="card stat">
+    <div class="stat-label">Source → Target</div>
+    <div class="stat-value small">{{ cfg.source_host or '(per-account)' }}<br>→ {{ cfg.target_host or '(per-account)' }}</div>
+  </div>
+  <div class="card stat">
+    <div class="stat-label">TLS cert verification</div>
+    <div class="stat-value small">{{ 'DISABLED ⚠' if cfg.allow_insecure else 'enforced ✓' }}</div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>Current job
+    <span id="job-status" class="badge badge-{{ job.status }}">{{ job.status }}</span>
+  </h2>
+  <p id="job-message" class="muted">{{ job.message or 'No job has run yet.' }}</p>
+  <div class="progress-row">
+    <span>Total <b id="j-total">{{ job.total }}</b></span>
+    <span>Running <b id="j-running">{{ job.running }}</b></span>
+    <span>Completed <b id="j-completed">{{ job.completed }}</b></span>
+    <span>Failed <b id="j-failed">{{ job.failed }}</b></span>
+    <span>Pending <b id="j-pending">{{ job.pending }}</b></span>
+    <span>Msgs migrated <b id="j-migrated">{{ job.total_migrated }}</b></span>
+  </div>
+
+  {% if current_user['role'] in ('operator','admin') %}
+  <div class="run-controls">
+    <form method="post" action="{{ url_for('main.run_job') }}" class="inline">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="kind" value="test">
+      <button type="submit" class="btn">Test connections</button>
+    </form>
+    <form method="post" action="{{ url_for('main.run_job') }}" class="inline">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="kind" value="dry-run">
+      <button type="submit" class="btn">Dry run</button>
+    </form>
+    <form method="post" action="{{ url_for('main.run_job') }}" class="inline run-migrate">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="kind" value="migrate">
+      <label class="chk"><input type="checkbox" name="incremental" value="1"> incremental</label>
+      <label class="chk"><input type="checkbox" name="resume" value="1"> resume</label>
+      <button type="submit" class="btn btn-primary"
+              data-confirm="Start a REAL migration now? This writes mail to the target server.">
+        Start migration
+      </button>
+    </form>
+  </div>
+  {% else %}
+  <p class="muted">You have read-only access. Ask an operator to start jobs.</p>
+  {% endif %}
+</section>
+
+<section class="card">
+  <h2>Mailboxes</h2>
+  <table class="data" id="jobs-table">
+    <thead>
+      <tr><th>Source</th><th>Target</th><th>Status</th><th>Migrated</th>
+          <th>Skipped</th><th>Failed</th><th>Worker</th><th>Error</th></tr>
+    </thead>
+    <tbody>
+      {% for j in jobs %}
+      <tr>
+        <td>{{ j.source_mailbox }}</td>
+        <td>{{ j.target_mailbox }}</td>
+        <td><span class="badge badge-{{ j.status }}">{{ j.status }}</span></td>
+        <td>{{ j.migrated }}</td>
+        <td>{{ j.skipped }}</td>
+        <td>{{ j.failed_msgs }}</td>
+        <td>{{ j.worker_id }}</td>
+        <td class="err">{{ j.error }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="8" class="muted">No mailbox jobs recorded yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='dashboard.js') }}"
+        data-status-url="{{ url_for('main.status_json') }}"></script>
+{% endblock %}

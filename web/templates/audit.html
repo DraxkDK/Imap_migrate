@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Audit log{% endblock %}
+{% block content %}
+<h1>Audit log</h1>
+<p class="muted">Most recent 300 security-relevant events.</p>
+<section class="card">
+  <table class="data">
+    <thead><tr><th>Time (UTC)</th><th>User</th><th>Action</th><th>Detail</th><th>IP</th></tr></thead>
+    <tbody>
+      {% for e in entries %}
+      <tr>
+        <td>{{ e.ts }}</td>
+        <td>{{ e.username or '—' }}</td>
+        <td>{{ e.action }}</td>
+        <td>{{ e.detail }}</td>
+        <td>{{ e.ip }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5" class="muted">No events yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

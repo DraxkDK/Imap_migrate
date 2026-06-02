@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Accounts{% endblock %}
+{% block content %}
+<h1>IMAP accounts</h1>
+<p class="muted">Passwords are encrypted at rest and never displayed again after saving.</p>
+
+<section class="card">
+  <h2>Add / update an account</h2>
+  <form method="post" action="{{ url_for('main.accounts') }}" class="form-grid">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <fieldset>
+      <legend>Source</legend>
+      <label>Email<input type="text" name="source_email" required></label>
+      <label>Username<input type="text" name="source_username" required></label>
+      <label>Password<input type="password" name="source_password" autocomplete="new-password" required></label>
+      <label>Host (optional)<input type="text" name="source_host" placeholder="inherit global"></label>
+      <label>Port (optional)<input type="number" name="source_port" min="1" max="65535"></label>
+    </fieldset>
+    <fieldset>
+      <legend>Target</legend>
+      <label>Email<input type="text" name="target_email" required></label>
+      <label>Username<input type="text" name="target_username" required></label>
+      <label>Password<input type="password" name="target_password" autocomplete="new-password" required></label>
+      <label>Host (optional)<input type="text" name="target_host" placeholder="inherit global"></label>
+      <label>Port (optional)<input type="number" name="target_port" min="1" max="65535"></label>
+    </fieldset>
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">Save account</button>
+    </div>
+  </form>
+</section>
+
+<section class="card">
+  <h2>Import from CSV</h2>
+  <p class="muted">Same format as the CLI <code>accounts.csv</code>. Passwords are encrypted on import.</p>
+  <form method="post" action="{{ url_for('main.import_accounts') }}" enctype="multipart/form-data" class="inline">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="file" name="csv_file" accept=".csv" required>
+    <button type="submit" class="btn">Import</button>
+  </form>
+</section>
+
+<section class="card">
+  <h2>Configured accounts ({{ accounts|length }})</h2>
+  <table class="data">
+    <thead><tr><th>Source email</th><th>Target email</th><th>Source host</th>
+               <th>Target host</th><th>Added</th><th></th></tr></thead>
+    <tbody>
+      {% for a in accounts %}
+      <tr>
+        <td>{{ a.source_email }}</td>
+        <td>{{ a.target_email }}</td>
+        <td>{{ a.source_host or '—' }}{% if a.source_port %}:{{ a.source_port }}{% endif %}</td>
+        <td>{{ a.target_host or '—' }}{% if a.target_port %}:{{ a.target_port }}{% endif %}</td>
+        <td>{{ a.created_at }}</td>
+        <td>
+          <form method="post" action="{{ url_for('main.delete_account', account_id=a.id) }}" class="inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="link-btn danger"
+                    data-confirm="Delete account {{ a.source_email }}?">Delete</button>
+          </form>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="6" class="muted">No accounts yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

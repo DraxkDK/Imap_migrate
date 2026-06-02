@@ -1,0 +1,29 @@
+# ===========================================================================
+# Caddy reverse proxy — automatic HTTPS (Let's Encrypt) with zero config.
+#
+#   sudo caddy run --config /path/to/Caddyfile
+#   (or place at /etc/caddy/Caddyfile and: sudo systemctl reload caddy)
+#
+# Caddy obtains and renews the TLS certificate automatically and sets sensible
+# security defaults. The Flask app listens on loopback 127.0.0.1:8000.
+# ===========================================================================
+
+migrate.example.com {
+    encode gzip
+
+    # Forward to the app. Caddy sets X-Forwarded-* automatically, which the
+    # app's ProxyFix trusts (IMAP_WEB_BEHIND_PROXY=1).
+    reverse_proxy 127.0.0.1:8000
+
+    # HSTS (Caddy already serves HTTPS; make it sticky).
+    header Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    header -Server
+
+    # Optional IP allow-list:
+    # @blocked not remote_ip 203.0.113.0/24
+    # respond @blocked 403
+
+    request_body {
+        max_size 4MB
+    }
+}

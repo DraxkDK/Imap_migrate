@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Users{% endblock %}
+{% block content %}
+<h1>Web users</h1>
+
+<section class="card">
+  <h2>Create user</h2>
+  <form method="post" action="{{ url_for('main.users') }}" class="inline-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>Username<input type="text" name="username" required></label>
+    <label>Password<input type="password" name="password" autocomplete="new-password" required></label>
+    <label>Role
+      <select name="role">
+        {% for r in roles %}<option value="{{ r }}">{{ r }}</option>{% endfor %}
+      </select>
+    </label>
+    <button type="submit" class="btn btn-primary">Create</button>
+  </form>
+  <p class="muted">viewer = read-only · operator = run jobs + accounts · admin = full control</p>
+</section>
+
+<section class="card">
+  <h2>Existing users</h2>
+  <table class="data">
+    <thead><tr><th>Username</th><th>Role</th><th>Active</th><th>Last login</th>
+               <th>Failed</th><th>Actions</th></tr></thead>
+    <tbody>
+      {% for u in users %}
+      <tr>
+        <td>{{ u.username }}</td>
+        <td>
+          <form method="post" action="{{ url_for('main.set_user_role', username=u.username) }}" class="inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <select name="role" onchange="this.form.submit()">
+              {% for r in roles %}
+                <option value="{{ r }}" {{ 'selected' if u.role == r }}>{{ r }}</option>
+              {% endfor %}
+            </select>
+          </form>
+        </td>
+        <td>{{ 'yes' if u.is_active else 'no' }}</td>
+        <td>{{ u.last_login or '—' }}</td>
+        <td>{{ u.failed_attempts }}</td>
+        <td class="actions">
+          <form method="post" action="{{ url_for('main.toggle_user_active', username=u.username) }}" class="inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="active" value="{{ '0' if u.is_active else '1' }}">
+            <button type="submit" class="link-btn">{{ 'Disable' if u.is_active else 'Enable' }}</button>
+          </form>
+          <form method="post" action="{{ url_for('main.reset_user_password', username=u.username) }}" class="inline pwreset">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="password" name="new_password" placeholder="new password" autocomplete="new-password">
+            <button type="submit" class="link-btn">Reset</button>
+          </form>
+          <form method="post" action="{{ url_for('main.delete_user', username=u.username) }}" class="inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="link-btn danger"
+                    data-confirm="Delete user {{ u.username }}?">Delete</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

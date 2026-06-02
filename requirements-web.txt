@@ -1,0 +1,12 @@
+# IMAP Migration Tool — Web UI dependencies
+# The CLI core (imap_migrate.py + src/) remains pure stdlib.
+# These packages are ONLY needed when running the optional web interface.
+#
+#   python -m pip install -r requirements-web.txt
+#
+Flask>=3.0,<4.0            # web framework (bundles Werkzeug + Jinja2)
+cryptography>=42.0         # Fernet — encrypts stored IMAP passwords at rest
+
+# Recommended production WSGI server (run behind Nginx/Caddy for TLS):
+gunicorn>=21.2 ; platform_system != "Windows"
+waitress>=3.0 ; platform_system == "Windows"

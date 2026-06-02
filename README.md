@@ -12,6 +12,13 @@ Highlights
 - Dry-run and test-connection modes
 - Bulk migration from CSV, single-mailbox from CLI
 - Full audit log, summary CSV, failed-items CSV
+- **Optional secured web UI** (multi-user, HTTPS, RBAC) — see [WEB_README.md](WEB_README.md)
+
+> 🌐 **Web interface:** a hardened, multi-user web UI (run/monitor migrations,
+> manage accounts, view reports & logs) is available in `web/`. It adds
+> authentication, role-based access, CSRF protection, security headers, and
+> at-rest credential encryption, and is meant to run behind an HTTPS reverse
+> proxy. The CLI below stays pure-stdlib. See **[WEB_README.md](WEB_README.md)**.
 
 ---
 

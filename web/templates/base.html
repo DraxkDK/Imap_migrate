@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}IMAP Migration{% endblock %} — IMAP Migration</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+{% if current_user %}
+<header class="topbar">
+  <div class="brand"><a href="{{ url_for('main.dashboard') }}">IMAP&nbsp;Migration</a></div>
+  <nav class="mainnav">
+    <a href="{{ url_for('main.dashboard') }}">Dashboard</a>
+    {% if current_user['role'] in ('operator', 'admin') %}
+      <a href="{{ url_for('main.accounts') }}">Accounts</a>
+    {% endif %}
+    <a href="{{ url_for('main.reports') }}">Reports</a>
+    <a href="{{ url_for('main.logs') }}">Logs</a>
+    {% if current_user['role'] == 'admin' %}
+      <a href="{{ url_for('main.users') }}">Users</a>
+      <a href="{{ url_for('main.audit_log') }}">Audit</a>
+    {% endif %}
+  </nav>
+  <div class="userbox">
+    <span class="user">{{ current_user['username'] }}
+      <span class="role role-{{ current_user['role'] }}">{{ current_user['role'] }}</span>
+    </span>
+    <a href="{{ url_for('auth.change_password') }}">Password</a>
+    <form method="post" action="{{ url_for('auth.logout') }}" class="inline">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="link-btn">Sign out</button>
+    </form>
+  </div>
+</header>
+{% endif %}
+
+<main class="content">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="flashes">
+        {% for category, message in messages %}
+          <div class="flash flash-{{ category }}">{{ message }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  {% block content %}{% endblock %}
+</main>
+
+<footer class="footer">
+  IMAP Migration Tool — handle credentials with care. Always behind HTTPS.
+</footer>
+{% block scripts %}{% endblock %}
+</body>
+</html>

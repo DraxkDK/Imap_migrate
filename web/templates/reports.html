@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Reports{% endblock %}
+{% block content %}
+<h1>Reports</h1>
+<section class="card">
+  <table class="data">
+    <thead><tr><th>File</th><th>Size</th><th></th></tr></thead>
+    <tbody>
+      {% for f in files %}
+      <tr>
+        <td>{{ f.name }}</td>
+        <td>{{ '%.1f'|format(f.size / 1024) }} KB</td>
+        <td><a href="{{ url_for('main.download_report', name=f.name) }}">Download</a></td>
+      </tr>
+      {% else %}
+      <tr><td colspan="3" class="muted">No reports generated yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

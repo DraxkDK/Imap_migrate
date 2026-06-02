@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Logs{% endblock %}
+{% block content %}
+<h1>Migration log</h1>
+<p class="muted">{{ log_path }} — last 64&nbsp;KB. Passwords are masked before logging.</p>
+<section class="card">
+  <pre class="logbox">{{ tail or 'Log file is empty or not yet created.' }}</pre>
+</section>
+{% endblock %}

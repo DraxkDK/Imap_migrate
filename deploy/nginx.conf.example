@@ -1,0 +1,70 @@
+# ===========================================================================
+# Nginx reverse proxy for the IMAP Migration web UI — HTTPS termination.
+#
+# The Flask app listens on 127.0.0.1:8000 (loopback only — never expose it
+# directly). Nginx terminates TLS and forwards to it.
+#
+# 1. Get a certificate (Let's Encrypt):
+#      sudo apt install certbot python3-certbot-nginx
+#      sudo certbot --nginx -d migrate.example.com
+#    certbot will fill in the ssl_certificate lines below automatically.
+#
+# 2. Copy this file to /etc/nginx/sites-available/imap-migrate, symlink into
+#    sites-enabled, then: sudo nginx -t && sudo systemctl reload nginx
+# ===========================================================================
+
+# Redirect all plain HTTP to HTTPS.
+server {
+    listen 80;
+    listen [::]:80;
+    server_name migrate.example.com;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    http2 on;
+    server_name migrate.example.com;
+
+    # --- TLS ---------------------------------------------------------------
+    ssl_certificate     /etc/letsencrypt/live/migrate.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/migrate.example.com/privkey.pem;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers off;
+    ssl_session_cache   shared:SSL:10m;
+    ssl_session_timeout 1d;
+    ssl_stapling on;
+    ssl_stapling_verify on;
+
+    # HSTS — force HTTPS for a year (only enable once you are sure HTTPS works).
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+
+    # Don't leak the nginx version.
+    server_tokens off;
+
+    # Migrations upload CSVs; the app caps body size to 2 MB, mirror it here.
+    client_max_body_size 4m;
+
+    # ---- Optional: restrict to a trusted office/VPN IP range --------------
+    # allow 203.0.113.0/24;
+    # deny  all;
+
+    location /static/ {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host;
+        expires 1h;
+    }
+
+    location / {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_http_version 1.1;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host  $host;
+        proxy_set_header X-Forwarded-Port  $server_port;
+        proxy_read_timeout 300s;
+    }
+}
