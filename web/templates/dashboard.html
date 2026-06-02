@@ -12,8 +12,26 @@
     {% endif %}
   </div>
   <div class="card stat">
-    <div class="stat-label">Source → Target</div>
-    <div class="stat-value small">{{ cfg.source_host or '(per-account)' }}<br>→ {{ cfg.target_host or '(per-account)' }}</div>
+    <div class="stat-label">Default Source → Target</div>
+    {% if current_user['role'] in ('operator','admin') %}
+    <form method="post" action="{{ url_for('main.update_servers') }}" class="server-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="text" name="source_host" placeholder="source host (blank = per-account)"
+             value="{{ servers.source_host if servers.configured else cfg.source_host }}">
+      <input type="number" name="source_port" placeholder="993" min="1" max="65535"
+             value="{{ servers.source_port if servers.configured else cfg.source_port }}">
+      <input type="text" name="target_host" placeholder="target host (blank = per-account)"
+             value="{{ servers.target_host if servers.configured else cfg.target_host }}">
+      <input type="number" name="target_port" placeholder="993" min="1" max="65535"
+             value="{{ servers.target_port if servers.configured else cfg.target_port }}">
+      <button type="submit" class="btn">Save</button>
+    </form>
+    {% else %}
+    <div class="stat-value small">
+      {{ (servers.source_host if servers.configured else cfg.source_host) or '(per-account)' }}<br>
+      → {{ (servers.target_host if servers.configured else cfg.target_host) or '(per-account)' }}
+    </div>
+    {% endif %}
   </div>
   <div class="card stat">
     <div class="stat-label">TLS cert verification</div>

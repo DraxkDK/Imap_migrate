@@ -119,3 +119,12 @@ code { background: var(--panel-2); padding: 0.1rem 0.3rem; border-radius: 4px; }
   padding: 0.8rem; overflow: auto; max-height: 600px; font-size: 0.8rem;
   white-space: pre-wrap; word-break: break-word;
 }
+
+/* Inline editable default-servers form on the dashboard */
+.server-form { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.server-form input {
+  width: 100%; padding: 6px 8px; background: var(--panel-2);
+  border: 1px solid var(--line); border-radius: 6px; color: var(--ink);
+  font-size: 13px;
+}
+.server-form .btn { align-self: flex-start; margin-top: 2px; }

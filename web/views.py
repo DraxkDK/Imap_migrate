@@ -118,7 +118,29 @@ def dashboard():
         jobs=jobs,
         account_count=len(accounts),
         cfg=cfg,
+        servers=current_app.store.get_global_servers(),
     )
+
+
+@bp.route("/settings/servers", methods=["POST"])
+@require_role("operator")
+def update_servers():
+    """Edit the global default source/target servers from the UI. Applies to
+    the next job immediately — no app restart needed. Blank host = per-account."""
+    f = request.form
+    current_app.store.set_global_servers(
+        source_host=(f.get("source_host") or "").strip(),
+        source_port=(f.get("source_port") or "").strip(),
+        target_host=(f.get("target_host") or "").strip(),
+        target_port=(f.get("target_port") or "").strip(),
+    )
+    _audit(
+        "servers_updated",
+        f"src={f.get('source_host', '')}:{f.get('source_port', '')} "
+        f"dst={f.get('target_host', '')}:{f.get('target_port', '')}",
+    )
+    flash("Default servers updated.", "success")
+    return redirect(url_for("main.dashboard"))
 
 
 @bp.route("/status.json")
@@ -240,6 +262,7 @@ def run_job():
     overrides = {
         "incremental": bool(request.form.get("incremental")),
         "resume": bool(request.form.get("resume")),
+        "servers": current_app.store.get_global_servers(),
     }
     ok, msg = current_app.jobs.start(
         kind, pairs, started_by=g.user["username"], overrides=overrides

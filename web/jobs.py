@@ -138,6 +138,21 @@ class JobManager:
         cfg.incremental = bool(overrides.get("incremental", cfg.incremental))
         cfg.resume = bool(overrides.get("resume", cfg.resume))
 
+        # Global default servers set from the UI take precedence over the env
+        # (applied live, no restart). Per-account hosts still override these.
+        servers = overrides.get("servers") or {}
+        if servers.get("configured"):
+            cfg.source_host = servers.get("source_host", "") or ""
+            cfg.target_host = servers.get("target_host", "") or ""
+            for attr, key in (("source_port", "source_port"),
+                              ("target_port", "target_port")):
+                raw = servers.get(key)
+                if raw:
+                    try:
+                        setattr(cfg, attr, int(raw))
+                    except (TypeError, ValueError):
+                        pass
+
         os.makedirs(cfg.log_dir, exist_ok=True)
         for path in (cfg.summary_report, cfg.failed_report, cfg.moved_report):
             d = os.path.dirname(path)

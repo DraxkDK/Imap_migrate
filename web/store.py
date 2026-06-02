@@ -65,6 +65,11 @@ CREATE TABLE IF NOT EXISTS audit_log (
     detail      TEXT    DEFAULT '',
     ip          TEXT    DEFAULT ''
 );
+
+CREATE TABLE IF NOT EXISTS app_settings (
+    key   TEXT PRIMARY KEY,
+    value TEXT NOT NULL DEFAULT ''
+);
 """
 
 
@@ -270,3 +275,38 @@ class Store:
         return self._read_all(
             "SELECT * FROM audit_log ORDER BY id DESC LIMIT ?", (limit,)
         )
+
+    # ------------------------------------------------------------------
+    # App settings  (global migration defaults, editable from the UI)
+    # ------------------------------------------------------------------
+
+    def get_setting(self, key: str, default: str = "") -> str:
+        row = self._read_one("SELECT value FROM app_settings WHERE key=?", (key,))
+        return row["value"] if row is not None else default
+
+    def set_setting(self, key: str, value: str) -> None:
+        with self._write() as cur:
+            cur.execute(
+                "INSERT INTO app_settings (key, value) VALUES (?, ?) "
+                "ON CONFLICT (key) DO UPDATE SET value=excluded.value",
+                (key, value),
+            )
+
+    def get_global_servers(self) -> dict:
+        """Default source/target servers set via the UI. `configured` is True
+        once a user has saved them — then they take precedence over the env."""
+        return {
+            "configured": self.get_setting("servers_configured") == "1",
+            "source_host": self.get_setting("source_host"),
+            "source_port": self.get_setting("source_port"),
+            "target_host": self.get_setting("target_host"),
+            "target_port": self.get_setting("target_port"),
+        }
+
+    def set_global_servers(self, *, source_host: str, source_port: str,
+                           target_host: str, target_port: str) -> None:
+        self.set_setting("source_host", source_host)
+        self.set_setting("source_port", source_port)
+        self.set_setting("target_host", target_host)
+        self.set_setting("target_port", target_port)
+        self.set_setting("servers_configured", "1")
