@@ -22,33 +22,43 @@ dig +short migrate.draxk.com
 sudo apt update
 sudo apt install -y nginx python3-venv python3-pip git certbot python3-certbot-nginx
 
-# .NET 8 ASP.NET Core runtime (cho DKS Portal):
-sudo apt install -y aspnetcore-runtime-8.0
+# .NET 8 SDK (cần để build/publish DKS Portal ngay trên server; SDK đã bao gồm runtime):
+sudo apt install -y dotnet-sdk-8.0
 # Nếu apt không có gói, cài qua Microsoft repo:
 #   https://learn.microsoft.com/dotnet/core/install/linux
+# (Nếu mày build nơi khác rồi chỉ copy bản publish lên server thì chỉ cần
+#  aspnetcore-runtime-8.0 thay cho dotnet-sdk-8.0.)
 ```
 
-Đưa source lên server, ví dụ `/opt/src` (hoặc `git clone`). Đường dẫn dưới đây giả định:
-- IMAP Migrate chạy ở `/opt/imap-migrate`
-- DKS Portal chạy ở `/opt/dks-portal`
+**Tải source từ GitHub** (repo chứa CẢ 2 app — gốc repo là Flask, thư mục
+`Migrate/` là DKS Portal .NET):
+
+```bash
+sudo git clone https://github.com/DraxkDK/Imap_migrate.git /opt/imap-migrate
+```
+
+Đường dẫn dưới đây giả định:
+- IMAP Migrate (Flask) chạy ngay tại bản clone: `/opt/imap-migrate`
+- DKS Portal (.NET) publish sang: `/opt/dks-portal`
+- Cập nhật về sau: `cd /opt/imap-migrate && sudo git pull`
 
 ---
 
 ## 1. App 1 — DKS Portal (.NET) ở `/`
 
-Build app này **cần .NET SDK** — build ngay trên server, hoặc build chỗ khác rồi copy thư mục publish lên.
+Build app này **cần .NET SDK** (`sudo apt install -y dotnet-sdk-8.0`) — build ngay
+trên server từ bản clone, hoặc build chỗ khác rồi copy thư mục publish lên.
 
 ```bash
-# Tạo user dịch vụ + thư mục
+# Tạo user dịch vụ
 sudo useradd --system --no-create-home --shell /usr/sbin/nologin dksportal
-sudo mkdir -p /opt/dks-portal
 
-# Publish (chạy ở máy có .NET SDK, trong thư mục project Portal):
-cd Migrate/Automation/Portal/DKS.Migration.Portal
-dotnet publish -c Release -o /opt/dks-portal
+# Publish từ bản clone sang /opt/dks-portal:
+cd /opt/imap-migrate/Migrate/Automation/Portal/DKS.Migration.Portal
+sudo dotnet publish -c Release -o /opt/dks-portal
 
 # (Tùy chọn) seed dữ liệu test + lấy token agent:
-#   dotnet run -- --seed
+#   sudo dotnet run -- --seed
 
 # Phân quyền
 sudo chown -R dksportal:dksportal /opt/dks-portal
@@ -65,10 +75,10 @@ curl -I http://127.0.0.1:5000        # phải trả về HTTP 200/302
 
 ## 2. App 2 — IMAP Migrate (Flask) ở `/imap/`
 
+Source đã có sẵn ở `/opt/imap-migrate` từ bước clone.
+
 ```bash
 sudo useradd --system --no-create-home --shell /usr/sbin/nologin imapmig
-sudo mkdir -p /opt/imap-migrate
-# Copy source (web/, src/, wsgi.py, requirements-web.txt, manage_web.py ...) vào /opt/imap-migrate
 
 cd /opt/imap-migrate
 sudo python3 -m venv .venv
@@ -145,11 +155,19 @@ File MSI `DKSProfileAgent.msi` đặt vào nơi Portal phục vụ download
 ## 6. Cập nhật về sau
 
 ```bash
-# DKS Portal:
-sudo systemctl stop dks-portal && dotnet publish -c Release -o /opt/dks-portal \
-  && sudo chown -R dksportal:dksportal /opt/dks-portal && sudo systemctl start dks-portal
-# IMAP Migrate:
-# copy code mới vào /opt/imap-migrate rồi: sudo systemctl restart imap-migrate-web
+cd /opt/imap-migrate && sudo git pull          # kéo code mới cho CẢ 2 app
+
+# DKS Portal: publish lại + restart
+sudo systemctl stop dks-portal
+cd /opt/imap-migrate/Migrate/Automation/Portal/DKS.Migration.Portal
+sudo dotnet publish -c Release -o /opt/dks-portal
+sudo chown -R dksportal:dksportal /opt/dks-portal
+sudo systemctl start dks-portal
+
+# IMAP Migrate: (nếu có dep mới) cài lại rồi restart
+sudo /opt/imap-migrate/.venv/bin/pip install -r /opt/imap-migrate/requirements-web.txt
+sudo chown -R imapmig:imapmig /opt/imap-migrate
+sudo systemctl restart imap-migrate-web
 ```
 
 ## Lỗi thường gặp
