@@ -1,0 +1,6 @@
+# Build artifacts — never commit these (rebuild from source)
+publish/
+*.msi
+*.wixpdb
+bin/
+obj/

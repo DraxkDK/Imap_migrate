@@ -58,6 +58,8 @@
         <RegistryValue Type="string"  Name="AgentToken"   Value="[AGENTTOKEN]" />
         <RegistryValue Type="string"  Name="Mode"         Value="[MODE]" />
         <RegistryValue Type="string"  Name="LogPath"      Value="[LOGPATH]" />
+        <!-- Lets the agent self-uninstall when the portal sends the Uninstall command. -->
+        <RegistryValue Type="string"  Name="ProductCode"  Value="[ProductCode]" />
       </RegistryKey>
     </Component>
 

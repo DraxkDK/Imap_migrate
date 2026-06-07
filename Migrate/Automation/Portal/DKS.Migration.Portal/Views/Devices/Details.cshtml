@@ -61,6 +61,20 @@
                         </form>
                     </div>
                 </div>
+                <hr class="my-3" />
+                <div class="row g-2">
+                    <div class="col-md-8">
+                        <form asp-action="SendCommand" asp-route-id="@Model.DeviceId" method="post"
+                              onsubmit="return confirm('Remotely UNINSTALL the agent from @Model.ComputerName? The agent will remove itself on its next check-in (~30s). It does NOT touch migrated mail.')">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="command" value="Uninstall" />
+                            <button class="btn btn-sm btn-danger w-100">&#128465; Uninstall Agent (remote)</button>
+                        </form>
+                    </div>
+                    <div class="col-md-4 d-flex align-items-center">
+                        <span class="text-muted small">Removes the agent from the PC. Requires the agent built with the current MSI.</span>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

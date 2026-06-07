@@ -483,10 +483,61 @@ public class AgentWorker : BackgroundService
                 _state.CurrentStep = "NeedManualAction";
                 await Log(_state.DeviceId, "Rollback", "Warning", "Rollback executed from portal command.");
                 break;
+            case "Uninstall":
+                await UninstallSelfAsync();
+                break;
             default:
                 await Log(_state.DeviceId, "Command", "Warning", $"Unknown command: {command}");
                 break;
         }
+    }
+
+    private async Task UninstallSelfAsync()
+    {
+        await Log(_state!.DeviceId, "Uninstall", "Warning", "Uninstall requested from portal — removing agent...");
+
+        string? productCode = null;
+        try
+        {
+            using var reg = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(@"SOFTWARE\DKS\ProfileAgent");
+            productCode = reg?.GetValue("ProductCode") as string;
+        }
+        catch { /* ignore */ }
+
+        // Remove the logon auto-start entry so it cannot relaunch.
+        try
+        {
+            using var run = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(
+                @"SOFTWARE\Microsoft\Windows\CurrentVersion\Run", writable: true);
+            run?.DeleteValue("DKSProfileAgent", throwOnMissingValue: false);
+        }
+        catch { /* ignore */ }
+
+        if (string.IsNullOrEmpty(productCode))
+        {
+            await Log(_state.DeviceId, "Uninstall", "Error",
+                "ProductCode not found in registry — cannot self-uninstall. Reinstall with the current MSI, or uninstall manually.");
+            return;
+        }
+
+        try
+        {
+            await _portal.CheckInAsync(_state.DeviceId, _state.CurrentStep,
+                errorMessage: "Agent uninstalling (portal command).");
+        }
+        catch { /* best effort */ }
+
+        // Delay so this process exits and unlocks its files before msiexec removes them.
+        var psi = new System.Diagnostics.ProcessStartInfo("cmd.exe",
+            $"/c timeout /t 4 /nobreak & msiexec /x {productCode} /qn")
+        {
+            CreateNoWindow = true,
+            UseShellExecute = false,
+        };
+        System.Diagnostics.Process.Start(psi);
+
+        await Log(_state.DeviceId, "Uninstall", "Info", "msiexec /x launched. Agent shutting down.");
+        Environment.Exit(0);
     }
 
     private Task Log(int deviceId, string step, string level, string message)
