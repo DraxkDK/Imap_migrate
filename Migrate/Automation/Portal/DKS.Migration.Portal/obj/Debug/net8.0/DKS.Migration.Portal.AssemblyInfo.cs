@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("DKS.Migration.Portal")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+235df0ab0ea628092433531e5775758bcca4d050")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+354ff5b06275817c246d539fee65db9d9b456e83")]
 [assembly: System.Reflection.AssemblyProductAttribute("DKS.Migration.Portal")]
 [assembly: System.Reflection.AssemblyTitleAttribute("DKS.Migration.Portal")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

@@ -100,10 +100,8 @@ public class AgentInstallerController : Controller
         var downloadName = $"DKSProfileAgent_{SanitizeFileName(customerCode)}.zip";
         var apiUrl = $"{BuildBaseUrl()}/api/agent";
 
-        Response.ContentType = "application/zip";
-        Response.Headers.ContentDisposition = $"attachment; filename=\"{downloadName}\"";
-
-        using (var archive = new ZipArchive(Response.Body, ZipArchiveMode.Create, leaveOpen: true))
+        var packageStream = new MemoryStream();
+        using (var archive = new ZipArchive(packageStream, ZipArchiveMode.Create, leaveOpen: true))
         {
             var exeEntry = archive.CreateEntry("DKSProfileAgent.exe", CompressionLevel.NoCompression);
             await using (var entryStream = exeEntry.Open())
@@ -128,8 +126,8 @@ public class AgentInstallerController : Controller
             }
         }
 
-        await Response.Body.FlushAsync(HttpContext.RequestAborted);
-        return new EmptyResult();
+        packageStream.Position = 0;
+        return File(packageStream, "application/zip", downloadName);
     }
 
     public async Task<IActionResult> DownloadGpoScript(int batchId)
