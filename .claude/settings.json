@@ -5,7 +5,8 @@
       "Bash(find Migrate/.claude -type f)",
       "Bash(ls Migrate/Automation/Portal/DKS.Migration.Portal/Controllers Migrate/Automation/Portal/DKS.Migration.Portal/Controllers/Api)",
       "Bash(ls Migrate/Automation/Agent/DKS.Migration.Agent/Services)",
-      "Bash(dotnet build *)"
+      "Bash(dotnet build *)",
+      "Bash(git check-ignore *)"
     ],
     "additionalDirectories": [
       "c:\\Users\\thanh\\.claude\\projects\\c--Users-thanh-Documents-GitHub-Imap-migrate\\memory"

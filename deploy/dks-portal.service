@@ -1,0 +1,47 @@
+# systemd unit for the DKS Automation Portal (.NET 8 / Kestrel behind Nginx).
+#
+#   sudo cp deploy/dks-portal.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now dks-portal
+#
+[Unit]
+Description=DKS Automation Portal (.NET)
+After=network.target
+
+[Service]
+Type=simple
+# Dedicated unprivileged service account — NOT root.
+User=dksportal
+Group=dksportal
+WorkingDirectory=/opt/dks-portal
+
+# Kestrel binds loopback only; Nginx terminates TLS and proxies to it.
+Environment=ASPNETCORE_URLS=http://127.0.0.1:5000
+Environment=ASPNETCORE_ENVIRONMENT=Production
+Environment=DOTNET_CLI_TELEMETRY_OPTOUT=1
+# SQLite DB path (writable by the service account):
+Environment=ConnectionStrings__Default=Data Source=/opt/dks-portal/dks_migration.db
+
+# Adjust the DLL name if your publish output differs.
+ExecStart=/usr/bin/dotnet /opt/dks-portal/DKS.Migration.Portal.dll
+
+Restart=on-failure
+RestartSec=5
+
+# --- Hardening (defense in depth) ---
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+# The app writes its SQLite DB / agent uploads here:
+ReadWritePaths=/opt/dks-portal
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=true
+LockPersonality=true
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target
