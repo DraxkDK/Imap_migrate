@@ -3,6 +3,9 @@
     var selectedBatch = ViewBag.SelectedBatch as DKS.Migration.Portal.Models.MigrationBatch;
     var activeToken = ViewBag.ActiveToken as DKS.Migration.Portal.Models.AgentToken;
     var baseUrl = ViewBag.BaseUrl as string ?? "";
+    var modeValue = ViewBag.ModeValue as string ?? "EXPORT_RECONFIG_IMPORT";
+    var standaloneExePath = ViewBag.StandaloneExePath as string;
+    var standaloneExeReady = !string.IsNullOrWhiteSpace(standaloneExePath);
 }
 
 <div class="row g-3">
@@ -57,17 +60,17 @@
             <div class="card mb-3">
                 <div class="card-header">MSI Install Command</div>
                 <div class="card-body">
-                    <pre class="bg-dark text-light p-3 rounded small mb-2">msiexec /i DKSProfileAgent.msi /qn ^
+                    <pre id="msiCommand" class="bg-dark text-light p-3 rounded small mb-2">msiexec /i DKSProfileAgent.msi /qn ^
   APIURL="@baseUrl/api/agent" ^
   CUSTOMERCODE="@selectedBatch.Customer?.CustomerCode" ^
   AGENTTOKEN="@activeToken.Token" ^
-  MODE="@selectedBatch.Mode.ToString().ToUpperInvariant()" ^
+  MODE="@modeValue" ^
   LOGPATH="C:\ProgramData\DKS\ProfileAgent\Logs" ^
   AUTOSTART="true"</pre>
                     <button class="btn btn-sm btn-outline-secondary" onclick="copyCmd()">&#128203; Copy</button>
                     <script>
                     function copyCmd() {
-                        var pre = document.querySelector('pre');
+                        var pre = document.getElementById('msiCommand');
                         navigator.clipboard.writeText(pre.innerText);
                         alert('Copied to clipboard!');
                     }
@@ -76,10 +79,34 @@
             </div>
             <div class="card">
                 <div class="card-header">Download Options</div>
-                <div class="card-body d-flex gap-2 flex-wrap">
-                    <a asp-action="DownloadMsi" class="btn btn-primary">&#11015; Download MSI</a>
-                    <a asp-action="DownloadGpoScript" asp-route-batchId="@selectedBatch.BatchId" class="btn btn-outline-secondary">&#11015; GPO Script (.ps1)</a>
-                    <a asp-action="DownloadIntuneScript" asp-route-batchId="@selectedBatch.BatchId" class="btn btn-outline-secondary">&#11015; Intune Script (.ps1)</a>
+                <div class="card-body">
+                    <div class="d-flex gap-2 flex-wrap">
+                        @if (standaloneExeReady)
+                        {
+                            <a asp-action="DownloadExePackage" asp-route-batchId="@selectedBatch.BatchId" class="btn btn-success">&#11015; Download EXE Package (.zip)</a>
+                        }
+                        else
+                        {
+                            <span class="btn btn-success disabled">&#11015; Download EXE Package (.zip)</span>
+                        }
+                        <a asp-action="DownloadMsi" class="btn btn-primary">&#11015; Download MSI</a>
+                        <a asp-action="DownloadGpoScript" asp-route-batchId="@selectedBatch.BatchId" class="btn btn-outline-secondary">&#11015; GPO Script (.ps1)</a>
+                        <a asp-action="DownloadIntuneScript" asp-route-batchId="@selectedBatch.BatchId" class="btn btn-outline-secondary">&#11015; Intune Script (.ps1)</a>
+                    </div>
+
+                    @if (standaloneExeReady)
+                    {
+                        <div class="alert alert-success mt-3 mb-0">
+                            Standalone EXE packaging is ready. The ZIP will contain <code>DKSProfileAgent.exe</code>, <code>appsettings.json</code>, and a short <code>README.txt</code>.
+                            <div class="small text-muted mt-1">Source EXE: @standaloneExePath</div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-warning mt-3 mb-0">
+                            Standalone EXE packaging is not ready yet. Build or copy <code>DKSProfileAgent.exe</code> into <code>wwwroot/agent/</code>, or set <code>AgentPackage:StandaloneExePath</code>.
+                        </div>
+                    }
                 </div>
             </div>
         }

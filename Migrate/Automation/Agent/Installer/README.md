@@ -66,6 +66,31 @@ msiexec /i DKSProfileAgent.msi /qn ^
 - The device should then appear under **Devices** in the portal.
 - Uninstall: `msiexec /x DKSProfileAgent.msi /qn` (or via Apps & features).
 
+## Standalone EXE package via portal ("copy & run")
+
+If you want the portal to generate a ready-to-send ZIP per batch/customer,
+publish a single-file EXE and place it where the portal can read it:
+
+```bash
+cd /opt/imap-migrate/Migrate/Automation/Agent
+
+dotnet publish DKS.Migration.Agent/DKS.Migration.Agent.csproj \
+  -c Release -r win-x64 --self-contained true \
+  -p:PublishSingleFile=true \
+  -o agent-exe
+
+cp agent-exe/DKSProfileAgent.exe /opt/dks-portal/wwwroot/agent/DKSProfileAgent.exe
+```
+
+Now the portal's **Agent Installer** page can produce a ZIP containing:
+
+- `DKSProfileAgent.exe`
+- `appsettings.json` with the selected batch token already embedded
+- `README.txt`
+
+Alternative: keep the EXE elsewhere and point the portal at it with
+`AgentPackage__StandaloneExePath=/path/to/DKSProfileAgent.exe`.
+
 ## Mass deployment
 Use the **GPO** / **Intune** scripts generated on the portal's Agent Installer
 page — they call `msiexec` with the right properties for the selected batch.
