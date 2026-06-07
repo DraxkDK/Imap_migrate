@@ -9,6 +9,7 @@ public class AgentConfig
     public string LogPath { get; set; } = @"C:\ProgramData\DKS\ProfileAgent\Logs";
     public bool AutoStart { get; set; } = true;
     public int CheckInIntervalSeconds { get; set; } = 60;
+    public bool UsePrfForM365Profile { get; set; } = false;
 
     // Test mode: bỏ qua kiểm tra POP3, dùng email giả để test toàn bộ flow
     public bool TestMode { get; set; } = false;

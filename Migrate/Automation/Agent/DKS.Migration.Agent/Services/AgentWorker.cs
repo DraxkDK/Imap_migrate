@@ -391,6 +391,28 @@ public class AgentWorker : BackgroundService
 
         var targetMailbox = ResolveM365MailboxUpn();
 
+        if (string.IsNullOrEmpty(targetMailbox))
+        {
+            await Log(_state.DeviceId, "ReconfigProfile", "Warning",
+                "No valid M365 sign-in UPN found. NewEmail/TargetMailbox must be a plain email like user@domain.com. Launching Outlook for manual setup.");
+            _profileReconfigurer.LaunchOutlookForSignIn();
+            _state.CurrentStep = "NeedManualAction";
+            await _portal.CheckInAsync(_state.DeviceId, "NeedManualAction",
+                errorMessage: "Set NewEmail or TargetMailbox to the real M365 sign-in email, sign in to Outlook manually, then run Import PST.");
+            return;
+        }
+
+        if (!_config.UsePrfForM365Profile)
+        {
+            await Log(_state.DeviceId, "ReconfigProfile", "Info",
+                $"Skipping PRF-based M365 profile creation for '{targetMailbox}'. Launching Outlook for interactive Modern Auth sign-in.");
+            _profileReconfigurer.LaunchOutlookForSignIn();
+            _state.CurrentStep = "NeedManualAction";
+            await _portal.CheckInAsync(_state.DeviceId, "NeedManualAction",
+                errorMessage: $"Sign in to Outlook with {targetMailbox}, verify the mailbox opens correctly, then run Import PST from the portal.");
+            return;
+        }
+
         if (!string.IsNullOrEmpty(targetMailbox))
         {
             // Tạo profile mới "Microsoft 365" bằng PRF — clean, không đụng profile cũ
