@@ -1,7 +1,7 @@
 {
-  "version": 3,
+  "version": 4,
   "targets": {
-    "net8.0-windows7.0": {
+    "net8.0-windows": {
       "Microsoft.Extensions.Configuration/8.0.0": {
         "type": "package",
         "dependencies": {
@@ -699,7 +699,7 @@
         }
       }
     },
-    "net8.0-windows7.0/win-x64": {
+    "net8.0-windows/win-x64": {
       "Microsoft.Extensions.Configuration/8.0.0": {
         "type": "package",
         "dependencies": {
@@ -2536,26 +2536,26 @@
     }
   },
   "projectFileDependencyGroups": {
-    "net8.0-windows7.0": [
+    "net8.0-windows": [
       "Microsoft.Extensions.Hosting >= 8.0.1",
       "Microsoft.Win32.Registry >= 5.0.0",
       "System.Text.Json >= 8.0.5"
     ]
   },
   "packageFolders": {
-    "C:\\Users\\ThanhPV\\.nuget\\packages\\": {}
+    "C:\\Users\\thanh\\.nuget\\packages\\": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\ThanhPV\\Downloads\\Migrate\\Automation\\Agent\\DKS.Migration.Agent\\DKS.Migration.Agent.csproj",
+      "projectUniqueName": "C:\\Users\\thanh\\Documents\\GitHub\\Imap_migrate\\Migrate\\Automation\\Agent\\DKS.Migration.Agent\\DKS.Migration.Agent.csproj",
       "projectName": "DKSProfileAgent",
-      "projectPath": "C:\\Users\\ThanhPV\\Downloads\\Migrate\\Automation\\Agent\\DKS.Migration.Agent\\DKS.Migration.Agent.csproj",
-      "packagesPath": "C:\\Users\\ThanhPV\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\ThanhPV\\Downloads\\Migrate\\Automation\\Agent\\DKS.Migration.Agent\\obj\\",
+      "projectPath": "C:\\Users\\thanh\\Documents\\GitHub\\Imap_migrate\\Migrate\\Automation\\Agent\\DKS.Migration.Agent\\DKS.Migration.Agent.csproj",
+      "packagesPath": "C:\\Users\\thanh\\.nuget\\packages\\",
+      "outputPath": "C:\\Users\\thanh\\Documents\\GitHub\\Imap_migrate\\Migrate\\Automation\\Agent\\DKS.Migration.Agent\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
-        "C:\\Users\\ThanhPV\\AppData\\Roaming\\NuGet\\NuGet.Config"
+        "C:\\Users\\thanh\\AppData\\Roaming\\NuGet\\NuGet.Config"
       ],
       "originalTargetFrameworks": [
         "net8.0-windows"
@@ -2564,7 +2564,8 @@
         "https://api.nuget.org/v3/index.json": {}
       },
       "frameworks": {
-        "net8.0-windows7.0": {
+        "net8.0-windows": {
+          "framework": "net8.0-windows7.0",
           "targetAlias": "net8.0-windows",
           "projectReferences": {}
         }
@@ -2578,10 +2579,12 @@
         "enableAudit": "true",
         "auditLevel": "low",
         "auditMode": "direct"
-      }
+      },
+      "SdkAnalysisLevel": "10.0.300"
     },
     "frameworks": {
-      "net8.0-windows7.0": {
+      "net8.0-windows": {
+        "framework": "net8.0-windows7.0",
         "targetAlias": "net8.0-windows",
         "dependencies": {
           "Microsoft.Extensions.Hosting": {
@@ -2608,12 +2611,42 @@
         ],
         "assetTargetFallback": true,
         "warn": true,
+        "downloadDependencies": [
+          {
+            "name": "Microsoft.AspNetCore.App.Ref",
+            "version": "[8.0.27, 8.0.27]"
+          },
+          {
+            "name": "Microsoft.AspNetCore.App.Runtime.win-x64",
+            "version": "[8.0.27, 8.0.27]"
+          },
+          {
+            "name": "Microsoft.NETCore.App.Host.win-x64",
+            "version": "[8.0.27, 8.0.27]"
+          },
+          {
+            "name": "Microsoft.NETCore.App.Ref",
+            "version": "[8.0.27, 8.0.27]"
+          },
+          {
+            "name": "Microsoft.NETCore.App.Runtime.win-x64",
+            "version": "[8.0.27, 8.0.27]"
+          },
+          {
+            "name": "Microsoft.WindowsDesktop.App.Ref",
+            "version": "[8.0.27, 8.0.27]"
+          },
+          {
+            "name": "Microsoft.WindowsDesktop.App.Runtime.win-x64",
+            "version": "[8.0.27, 8.0.27]"
+          }
+        ],
         "frameworkReferences": {
           "Microsoft.NETCore.App": {
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.421/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.300/PortableRuntimeIdentifierGraph.json"
       }
     },
     "runtimes": {

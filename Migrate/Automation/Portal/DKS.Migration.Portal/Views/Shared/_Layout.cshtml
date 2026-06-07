@@ -71,6 +71,14 @@
            asp-controller="Logs" asp-action="Index">
             <span class="icon">&#128196;</span> Logs
         </a>
+        @if (User.IsInRole("Admin"))
+        {
+            <div class="nav-label">Administration</div>
+            <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "PortalUsers" ? "active" : "")"
+               asp-controller="PortalUsers" asp-action="Index">
+                <span class="icon">&#128272;</span> Portal Users
+            </a>
+        }
         <div class="nav-label">Other Tools</div>
         <a class="nav-link" href="/imap/">
             <span class="icon">&#9993;</span> IMAP Migrate &#8599;
@@ -80,7 +88,21 @@
 <div class="main-content">
     <div class="topbar">
         <h5>@(ViewData["Title"] ?? "DKS Migration Portal")</h5>
-        <small class="text-muted">@DateTime.Now.ToString("yyyy-MM-dd HH:mm")</small>
+        <div class="d-flex align-items-center gap-3">
+            @if (User.Identity?.IsAuthenticated == true)
+            {
+                <span class="small text-muted">
+                    @User.Identity.Name
+                    <span class="badge bg-secondary">@(User.IsInRole("Admin") ? "Admin" : User.IsInRole("Operator") ? "Operator" : "Viewer")</span>
+                </span>
+                <a class="small" asp-controller="Account" asp-action="Password">Password</a>
+                <form method="post" asp-controller="Account" asp-action="Logout" class="d-inline">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-sm btn-outline-secondary btn-xs">Sign out</button>
+                </form>
+            }
+            <small class="text-muted">@DateTime.Now.ToString("yyyy-MM-dd HH:mm")</small>
+        </div>
     </div>
 
     @if (TempData["Success"] != null)

@@ -3,9 +3,25 @@ using DKS.Migration.Agent.Services;
 
 var builder = Host.CreateApplicationBuilder(args);
 
-// Load config from appsettings + environment + command-line (MSI properties map to env vars)
+// Load config from appsettings + registry + environment.
+// Precedence (low → high): appsettings.json → HKLM registry (written by MSI) → env vars.
 var config = new AgentConfig();
 builder.Configuration.GetSection("Agent").Bind(config);
+
+// Registry config written by the MSI at HKLM\SOFTWARE\DKS\ProfileAgent.
+try
+{
+    using var reg = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(@"SOFTWARE\DKS\ProfileAgent");
+    if (reg != null)
+    {
+        if (reg.GetValue("ApiUrl") is string a && a.Length > 0) config.ApiUrl = a;
+        if (reg.GetValue("CustomerCode") is string c && c.Length > 0) config.CustomerCode = c;
+        if (reg.GetValue("AgentToken") is string t && t.Length > 0) config.AgentToken = t;
+        if (reg.GetValue("Mode") is string m && m.Length > 0) config.Mode = m;
+        if (reg.GetValue("LogPath") is string l && l.Length > 0) config.LogPath = l;
+    }
+}
+catch { /* no registry config (e.g. running standalone) — ignore */ }
 
 // Allow MSI command-line properties to override via environment variables
 config.ApiUrl = Environment.GetEnvironmentVariable("APIURL") ?? config.ApiUrl;

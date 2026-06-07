@@ -1,0 +1,101 @@
+@model IEnumerable<DKS.Migration.Portal.Models.PortalUser>
+@{
+    ViewData["Title"] = "Portal Users";
+    var roles = (string[])ViewBag.Roles;
+    var me = User.Identity?.Name;
+}
+
+<div class="card mb-3">
+    <div class="card-header">Add portal user</div>
+    <div class="card-body">
+        <form method="post" asp-action="Create" class="row g-2 align-items-end">
+            @Html.AntiForgeryToken()
+            <div class="col-md-3">
+                <label class="form-label small">Username</label>
+                <input name="username" class="form-control form-control-sm" required />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small">Password</label>
+                <input name="password" type="password" class="form-control form-control-sm" required />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small">Role</label>
+                <select name="role" class="form-select form-select-sm">
+                    @foreach (var r in roles)
+                    {
+                        <option value="@r">@r</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-sm btn-primary">Create user</button>
+            </div>
+        </form>
+        <div class="text-muted small mt-2">
+            <b>Admin</b>: full access + manage users · <b>Operator</b>: create/edit/delete data · <b>Viewer</b>: read-only
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">Users</div>
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead><tr><th>Username</th><th>Role</th><th>Active</th><th>Last login</th><th class="text-end">Actions</th></tr></thead>
+            <tbody>
+            @foreach (var u in Model)
+            {
+                <tr>
+                    <td><code>@u.Username</code>@(u.Username == me ? " (you)" : "")</td>
+                    <td>
+                        <form method="post" asp-action="SetRole" class="d-inline">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@u.Id" />
+                            <select name="role" class="form-select form-select-sm d-inline" style="width:auto"
+                                    onchange="this.form.submit()">
+                                @foreach (var r in roles)
+                                {
+                                    if (r == u.Role)
+                                    {
+                                        <option value="@r" selected>@r</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@r">@r</option>
+                                    }
+                                }
+                            </select>
+                        </form>
+                    </td>
+                    <td>
+                        <span class="badge @(u.IsActive ? "bg-success" : "bg-secondary")">@(u.IsActive ? "yes" : "no")</span>
+                    </td>
+                    <td class="text-muted small">@(u.LastLogin?.ToString("yyyy-MM-dd HH:mm") ?? "—")</td>
+                    <td class="text-end">
+                        <form method="post" asp-action="ToggleActive" class="d-inline">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@u.Id" />
+                            <button class="btn btn-xs btn-outline-secondary" @(u.Username == me ? "disabled" : "")>
+                                @(u.IsActive ? "Disable" : "Enable")
+                            </button>
+                        </form>
+                        <form method="post" asp-action="ResetPassword" class="d-inline"
+                              onsubmit="var p=prompt('New password (min 8 chars):'); if(!p){return false;} this.newPassword.value=p;">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@u.Id" />
+                            <input type="hidden" name="newPassword" value="" />
+                            <button class="btn btn-xs btn-outline-primary">Reset pw</button>
+                        </form>
+                        <form method="post" asp-action="Delete" class="d-inline"
+                              onsubmit="return confirm('Delete user @u.Username?');">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@u.Id" />
+                            <button class="btn btn-xs btn-outline-danger" @(u.Username == me ? "disabled" : "")>Delete</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

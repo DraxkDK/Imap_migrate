@@ -1,13 +1,13 @@
 {
   "version": 2,
-  "dgSpecHash": "WflASjaeObw=",
+  "dgSpecHash": "u8r+4RJuL5Y=",
   "success": true,
-  "projectFilePath": "C:\\Users\\ThanhPV\\Downloads\\Migrate\\MDaemonCalendarMigration\\MDaemonCalendarMigration.csproj",
+  "projectFilePath": "C:\\Users\\thanh\\Documents\\GitHub\\Imap_migrate\\Migrate\\MDaemonCalendarMigration\\MDaemonCalendarMigration.csproj",
   "expectedPackageFiles": [
-    "C:\\Users\\ThanhPV\\.nuget\\packages\\microsoft.net.illink.tasks\\8.0.27\\microsoft.net.illink.tasks.8.0.27.nupkg.sha512",
-    "C:\\Users\\ThanhPV\\.nuget\\packages\\microsoft.netcore.app.runtime.win-x64\\8.0.27\\microsoft.netcore.app.runtime.win-x64.8.0.27.nupkg.sha512",
-    "C:\\Users\\ThanhPV\\.nuget\\packages\\microsoft.windowsdesktop.app.runtime.win-x64\\8.0.27\\microsoft.windowsdesktop.app.runtime.win-x64.8.0.27.nupkg.sha512",
-    "C:\\Users\\ThanhPV\\.nuget\\packages\\microsoft.aspnetcore.app.runtime.win-x64\\8.0.27\\microsoft.aspnetcore.app.runtime.win-x64.8.0.27.nupkg.sha512"
+    "C:\\Users\\thanh\\.nuget\\packages\\microsoft.netcore.app.ref\\8.0.27\\microsoft.netcore.app.ref.8.0.27.nupkg.sha512",
+    "C:\\Users\\thanh\\.nuget\\packages\\microsoft.windowsdesktop.app.ref\\8.0.27\\microsoft.windowsdesktop.app.ref.8.0.27.nupkg.sha512",
+    "C:\\Users\\thanh\\.nuget\\packages\\microsoft.aspnetcore.app.ref\\8.0.27\\microsoft.aspnetcore.app.ref.8.0.27.nupkg.sha512",
+    "C:\\Users\\thanh\\.nuget\\packages\\microsoft.netcore.app.host.win-x64\\8.0.27\\microsoft.netcore.app.host.win-x64.8.0.27.nupkg.sha512"
   ],
   "logs": []
 }

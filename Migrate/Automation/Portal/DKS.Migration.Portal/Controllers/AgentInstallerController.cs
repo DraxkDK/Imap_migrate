@@ -10,11 +10,13 @@ public class AgentInstallerController : Controller
 {
     private readonly AppDbContext _db;
     private readonly IConfiguration _config;
+    private readonly IWebHostEnvironment _env;
 
-    public AgentInstallerController(AppDbContext db, IConfiguration config)
+    public AgentInstallerController(AppDbContext db, IConfiguration config, IWebHostEnvironment env)
     {
         _db = db;
         _config = config;
+        _env = env;
     }
 
     public async Task<IActionResult> Index(int? batchId)
@@ -60,8 +62,15 @@ public class AgentInstallerController : Controller
 
     public IActionResult DownloadMsi()
     {
-        var placeholder = "MSI_PLACEHOLDER - Build DKSProfileAgent.msi using WiX Toolset";
-        return File(System.Text.Encoding.UTF8.GetBytes(placeholder), "application/octet-stream", "DKSProfileAgent.msi");
+        // Serve the real MSI if it has been built and dropped into wwwroot/agent.
+        var msiPath = Path.Combine(_env.WebRootPath, "agent", "DKSProfileAgent.msi");
+        if (System.IO.File.Exists(msiPath))
+            return PhysicalFile(msiPath, "application/octet-stream", "DKSProfileAgent.msi");
+
+        var placeholder = "MSI not built yet. Build it from "
+            + "Migrate/Automation/Agent/Installer (see Installer/README.md), then copy "
+            + "DKSProfileAgent.msi into wwwroot/agent/.";
+        return File(System.Text.Encoding.UTF8.GetBytes(placeholder), "text/plain", "DKSProfileAgent.txt");
     }
 
     public async Task<IActionResult> DownloadGpoScript(int batchId)

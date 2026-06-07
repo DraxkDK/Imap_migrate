@@ -14,6 +14,7 @@ public class AppDbContext : DbContext
     public DbSet<PstFile> PstFiles => Set<PstFile>();
     public DbSet<DeviceLog> Logs => Set<DeviceLog>();
     public DbSet<AgentToken> AgentTokens => Set<AgentToken>();
+    public DbSet<PortalUser> PortalUsers => Set<PortalUser>();
 
     protected override void OnModelCreating(ModelBuilder model)
     {
@@ -52,5 +53,8 @@ public class AppDbContext : DbContext
 
         model.Entity<AgentToken>()
             .HasIndex(t => t.Token).IsUnique();
+
+        model.Entity<PortalUser>()
+            .HasIndex(u => u.Username).IsUnique();
     }
 }

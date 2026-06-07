@@ -9,6 +9,8 @@
     <AssemblyName>DKSProfileAgent</AssemblyName>
     <RootNamespace>DKS.Migration.Agent</RootNamespace>
     <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
+    <!-- WinExe: no console window when launched at user logon by the MSI. -->
+    <OutputType>WinExe</OutputType>
   </PropertyGroup>
 
   <ItemGroup>

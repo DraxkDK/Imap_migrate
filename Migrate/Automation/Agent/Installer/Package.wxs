@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  DKS Profile Migration Agent installer (WiX v5).
+
+  Installs the agent to Program Files, writes its configuration to
+  HKLM\SOFTWARE\DKS\ProfileAgent from the MSI properties, and (when
+  AUTOSTART=true) registers it to launch at every user logon via the Run key.
+
+  The agent runs in the interactive USER session (it automates the user's
+  Outlook profile), so it is intentionally NOT installed as a LocalSystem
+  Windows service.
+
+  Install command (matches the portal's generated command):
+    msiexec /i DKSProfileAgent.msi /qn ^
+      APIURL="https://migrate.draxk.com/api/agent" ^
+      CUSTOMERCODE="ACME" ^
+      AGENTTOKEN="xxxxxxxx" ^
+      MODE="EXPORT_RECONFIG_IMPORT" ^
+      LOGPATH="C:\ProgramData\DKS\ProfileAgent\Logs" ^
+      AUTOSTART="true"
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package Name="DKS Profile Migration Agent"
+           Manufacturer="DKS"
+           Version="1.0.0.0"
+           UpgradeCode="7B2C9E14-3D5A-4F8B-9C1E-2A6D4F0B8E31"
+           Scope="perMachine"
+           Compressed="yes">
+
+    <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <!-- Properties overridable from the msiexec command line (Secure so they
+         pass through an elevated/silent install; token is Hidden from logs). -->
+    <Property Id="APIURL" Value="https://migrate.draxk.com/api/agent" Secure="yes" />
+    <Property Id="CUSTOMERCODE" Secure="yes" />
+    <Property Id="AGENTTOKEN" Secure="yes" Hidden="yes" />
+    <Property Id="MODE" Value="EXPORT_RECONFIG_IMPORT" Secure="yes" />
+    <Property Id="LOGPATH" Value="C:\ProgramData\DKS\ProfileAgent\Logs" Secure="yes" />
+    <Property Id="AUTOSTART" Value="true" Secure="yes" />
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="DKS Profile Agent" />
+    </StandardDirectory>
+
+    <Feature Id="Main" Title="DKS Profile Migration Agent" Level="1">
+      <ComponentGroupRef Id="AgentFiles" />
+      <ComponentRef Id="RegistryConfig" />
+      <ComponentRef Id="AutoStartRun" />
+    </Feature>
+
+    <!-- Agent configuration in the registry (read by the agent at startup). -->
+    <Component Id="RegistryConfig" Directory="INSTALLFOLDER">
+      <RegistryKey Root="HKLM" Key="SOFTWARE\DKS\ProfileAgent">
+        <RegistryValue Type="integer" Name="Installed" Value="1" KeyPath="yes" />
+        <RegistryValue Type="string"  Name="ApiUrl"       Value="[APIURL]" />
+        <RegistryValue Type="string"  Name="CustomerCode" Value="[CUSTOMERCODE]" />
+        <RegistryValue Type="string"  Name="AgentToken"   Value="[AGENTTOKEN]" />
+        <RegistryValue Type="string"  Name="Mode"         Value="[MODE]" />
+        <RegistryValue Type="string"  Name="LogPath"      Value="[LOGPATH]" />
+      </RegistryKey>
+    </Component>
+
+    <!-- Launch the agent at every user logon (only when AUTOSTART="true"). -->
+    <Component Id="AutoStartRun" Directory="INSTALLFOLDER"
+               Condition="AUTOSTART=&quot;true&quot;">
+      <RegistryValue Root="HKLM"
+                     Key="SOFTWARE\Microsoft\Windows\CurrentVersion\Run"
+                     Name="DKSProfileAgent" Type="string"
+                     Value="&quot;[INSTALLFOLDER]DKSProfileAgent.exe&quot;"
+                     KeyPath="yes" />
+    </Component>
+  </Package>
+
+  <!-- All files from the published agent output (Installer/publish). -->
+  <Fragment>
+    <ComponentGroup Id="AgentFiles" Directory="INSTALLFOLDER">
+      <Files Include="publish/**" />
+    </ComponentGroup>
+  </Fragment>
+</Wix>

@@ -1,26 +1,30 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\ThanhPV\\Downloads\\Migrate\\MDaemonCalendarExtractor\\MDaemonCalendarExtractor.csproj": {}
+    "C:\\Users\\thanh\\Documents\\GitHub\\Imap_migrate\\Migrate\\MDaemonCalendarExtractor\\MDaemonCalendarExtractor.csproj": {}
   },
   "projects": {
-    "C:\\Users\\ThanhPV\\Downloads\\Migrate\\MDaemonCalendarExtractor\\MDaemonCalendarExtractor.csproj": {
+    "C:\\Users\\thanh\\Documents\\GitHub\\Imap_migrate\\Migrate\\MDaemonCalendarExtractor\\MDaemonCalendarExtractor.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\ThanhPV\\Downloads\\Migrate\\MDaemonCalendarExtractor\\MDaemonCalendarExtractor.csproj",
+        "projectUniqueName": "C:\\Users\\thanh\\Documents\\GitHub\\Imap_migrate\\Migrate\\MDaemonCalendarExtractor\\MDaemonCalendarExtractor.csproj",
         "projectName": "MDaemonCalendarExtractor",
-        "projectPath": "C:\\Users\\ThanhPV\\Downloads\\Migrate\\MDaemonCalendarExtractor\\MDaemonCalendarExtractor.csproj",
-        "packagesPath": "C:\\Users\\ThanhPV\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\ThanhPV\\Downloads\\Migrate\\MDaemonCalendarExtractor\\obj\\",
+        "projectPath": "C:\\Users\\thanh\\Documents\\GitHub\\Imap_migrate\\Migrate\\MDaemonCalendarExtractor\\MDaemonCalendarExtractor.csproj",
+        "packagesPath": "C:\\Users\\thanh\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\thanh\\Documents\\GitHub\\Imap_migrate\\Migrate\\MDaemonCalendarExtractor\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "C:\\Users\\ThanhPV\\AppData\\Roaming\\NuGet\\NuGet.Config"
+          "C:\\Users\\thanh\\AppData\\Roaming\\NuGet\\NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net8.0-windows"
         ],
+        "sources": {
+          "https://api.nuget.org/v3/index.json": {}
+        },
         "frameworks": {
-          "net8.0-windows7.0": {
+          "net8.0-windows": {
+            "framework": "net8.0-windows7.0",
             "targetAlias": "net8.0-windows",
             "projectReferences": {}
           }
@@ -34,10 +38,12 @@
           "enableAudit": "true",
           "auditLevel": "low",
           "auditMode": "direct"
-        }
+        },
+        "SdkAnalysisLevel": "10.0.300"
       },
       "frameworks": {
-        "net8.0-windows7.0": {
+        "net8.0-windows": {
+          "framework": "net8.0-windows7.0",
           "targetAlias": "net8.0-windows",
           "imports": [
             "net461",
@@ -50,6 +56,24 @@
           ],
           "assetTargetFallback": true,
           "warn": true,
+          "downloadDependencies": [
+            {
+              "name": "Microsoft.AspNetCore.App.Ref",
+              "version": "[8.0.27, 8.0.27]"
+            },
+            {
+              "name": "Microsoft.NETCore.App.Host.win-x64",
+              "version": "[8.0.27, 8.0.27]"
+            },
+            {
+              "name": "Microsoft.NETCore.App.Ref",
+              "version": "[8.0.27, 8.0.27]"
+            },
+            {
+              "name": "Microsoft.WindowsDesktop.App.Ref",
+              "version": "[8.0.27, 8.0.27]"
+            }
+          ],
           "frameworkReferences": {
             "Microsoft.NETCore.App": {
               "privateAssets": "all"
@@ -58,7 +82,7 @@
               "privateAssets": "none"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.421/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.300/PortableRuntimeIdentifierGraph.json"
         }
       }
     }

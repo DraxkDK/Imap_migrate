@@ -1,5 +1,6 @@
 using DKS.Migration.Portal.Data;
 using DKS.Migration.Portal.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -36,6 +37,7 @@ public class HomeController : Controller
         return View(vm);
     }
 
+    [AllowAnonymous]
     public IActionResult Error() => View();
 }
 

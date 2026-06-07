@@ -1,10 +1,15 @@
 using DKS.Migration.Portal.Data;
 using DKS.Migration.Portal.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace DKS.Migration.Portal.Controllers.Api;
 
+// Agents run on end-user PCs and cannot log into the portal; they authenticate
+// per-request by token (see Register). Exempt this controller from the global
+// login requirement.
+[AllowAnonymous]
 [ApiController]
 [Route("api/agent")]
 public class AgentApiController : ControllerBase

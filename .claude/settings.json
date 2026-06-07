@@ -7,7 +7,10 @@
       "Bash(ls Migrate/Automation/Agent/DKS.Migration.Agent/Services)",
       "Bash(dotnet build *)",
       "Bash(git check-ignore *)",
-      "Bash(git ls-tree *)"
+      "Bash(git ls-tree *)",
+      "Bash(grep -v \"bin/\\\\|obj/\")",
+      "Bash(git cat-file *)",
+      "PowerShell($d = Get-Command dotnet -ErrorAction SilentlyContinue; if \\($d\\) { \"dotnet: \" + \\(dotnet --version\\) + \"  @ \" + $d.Source } else { \"DOTNET_NOT_FOUND_LOCAL\" }; $w = Get-Command wix -ErrorAction SilentlyContinue; if \\($w\\) { \"wix: \" + \\(wix --version\\) } else { \"WIX_NOT_FOUND_LOCAL\" })"
     ],
     "additionalDirectories": [
       "c:\\Users\\thanh\\.claude\\projects\\c--Users-thanh-Documents-GitHub-Imap-migrate\\memory"

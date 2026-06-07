@@ -1,5 +1,8 @@
 using DKS.Migration.Portal.Data;
 using DKS.Migration.Portal.Models;
+using DKS.Migration.Portal.Services;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json.Serialization;
@@ -21,6 +24,30 @@ builder.Services.AddDbContext<AppDbContext>(opt =>
     opt.UseSqlite(builder.Configuration.GetConnectionString("Default")
         ?? "Data Source=dks_migration.db"));
 
+// Cookie auth — every page requires login except those marked [AllowAnonymous]
+// (the login page and the agent API, which authenticates by token).
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(o =>
+    {
+        o.LoginPath = "/Account/Login";
+        o.LogoutPath = "/Account/Logout";
+        o.AccessDeniedPath = "/Account/Denied";
+        o.ExpireTimeSpan = TimeSpan.FromHours(8);
+        o.SlidingExpiration = true;
+        o.Cookie.Name = "DksPortalAuth";
+        o.Cookie.HttpOnly = true;
+        o.Cookie.SameSite = SameSiteMode.Lax;
+    });
+
+builder.Services.AddAuthorization(options =>
+{
+    // Require an authenticated user on every endpoint by default; opt out with
+    // [AllowAnonymous] on the login page and the agent API.
+    options.FallbackPolicy = new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
+});
+
 var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
@@ -28,7 +55,40 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.Database.EnsureCreated();
 
-    // Run seed when --seed flag passed: dotnet run -- --seed
+    // EnsureCreated does not alter an existing schema, so make sure the portal
+    // users table exists even on databases created before auth was added.
+    db.Database.ExecuteSqlRaw(@"
+        CREATE TABLE IF NOT EXISTS ""PortalUsers"" (
+            ""Id"" INTEGER NOT NULL CONSTRAINT ""PK_PortalUsers"" PRIMARY KEY AUTOINCREMENT,
+            ""Username"" TEXT NOT NULL,
+            ""PasswordHash"" TEXT NOT NULL,
+            ""Role"" TEXT NOT NULL,
+            ""IsActive"" INTEGER NOT NULL,
+            ""CreatedAt"" TEXT NOT NULL,
+            ""LastLogin"" TEXT NULL
+        );");
+    db.Database.ExecuteSqlRaw(
+        @"CREATE UNIQUE INDEX IF NOT EXISTS ""IX_PortalUsers_Username"" ON ""PortalUsers"" (""Username"");");
+
+    // Seed a first admin if none exist. Override via env PORTAL_ADMIN_USER /
+    // PORTAL_ADMIN_PASSWORD. Change the password right after first login.
+    if (!db.PortalUsers.Any())
+    {
+        var adminUser = Environment.GetEnvironmentVariable("PORTAL_ADMIN_USER") ?? "admin";
+        var adminPass = Environment.GetEnvironmentVariable("PORTAL_ADMIN_PASSWORD") ?? "Admin@123456";
+        db.PortalUsers.Add(new PortalUser
+        {
+            Username = adminUser,
+            PasswordHash = PasswordHasher.Hash(adminPass),
+            Role = PortalRoles.Admin,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        });
+        await db.SaveChangesAsync();
+        Console.WriteLine($"[SEED] Portal admin '{adminUser}' created — CHANGE THIS PASSWORD after first login.");
+    }
+
+    // Run test-data seed when --seed flag passed: dotnet run -- --seed
     if (args.Contains("--seed"))
     {
         await SeedTestData(db);
@@ -111,7 +171,27 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
+
+app.UseAuthentication();
 app.UseAuthorization();
+
+// Viewer role is read-only: block state-changing verbs for viewers, except the
+// agent API and their own account actions (logout / change password).
+app.Use(async (ctx, next) =>
+{
+    var u = ctx.User;
+    if (u?.Identity?.IsAuthenticated == true && u.IsInRole(PortalRoles.Viewer)
+        && !HttpMethods.IsGet(ctx.Request.Method)
+        && !HttpMethods.IsHead(ctx.Request.Method)
+        && !ctx.Request.Path.StartsWithSegments("/Account")
+        && !ctx.Request.Path.StartsWithSegments("/api/agent"))
+    {
+        ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
+        await ctx.Response.WriteAsync("Viewer role is read-only.");
+        return;
+    }
+    await next();
+});
 
 app.MapControllerRoute(name: "default", pattern: "{controller=Home}/{action=Index}/{id?}");
 
