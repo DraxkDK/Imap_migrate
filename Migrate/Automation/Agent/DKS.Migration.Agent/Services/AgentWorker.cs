@@ -1,4 +1,5 @@
 using DKS.Migration.Agent.Models;
+using System.Net.Mail;
 
 namespace DKS.Migration.Agent.Services;
 
@@ -388,7 +389,7 @@ public class AgentWorker : BackgroundService
                 "No Exchange/M365 profile found. User must add M365 account manually in Outlook.");
         }
 
-        var targetMailbox = _state.TargetMailbox ?? _state.NewEmail;
+        var targetMailbox = ResolveM365MailboxUpn();
 
         if (!string.IsNullOrEmpty(targetMailbox))
         {
@@ -544,5 +545,50 @@ public class AgentWorker : BackgroundService
     {
         _logger.LogInformation("[{Step}] {Message}", step, message);
         return deviceId > 0 ? _portal.LogAsync(deviceId, step, level, message) : Task.CompletedTask;
+    }
+
+    private string? ResolveM365MailboxUpn()
+    {
+        var newEmail = NormalizePlainMailbox(_state?.NewEmail);
+        var targetMailbox = NormalizePlainMailbox(_state?.TargetMailbox);
+
+        if (!string.IsNullOrWhiteSpace(_state?.TargetMailbox) && targetMailbox == null)
+        {
+            _logger.LogWarning("TargetMailbox '{TargetMailbox}' is not a plain UPN/email and will not be used for PRF profile creation.", _state.TargetMailbox);
+        }
+
+        if (!string.IsNullOrWhiteSpace(_state?.NewEmail) && newEmail == null)
+        {
+            _logger.LogWarning("NewEmail '{NewEmail}' is not a plain UPN/email and will not be used for PRF profile creation.", _state.NewEmail);
+        }
+
+        if (newEmail != null && targetMailbox != null &&
+            !newEmail.Equals(targetMailbox, StringComparison.OrdinalIgnoreCase))
+        {
+            _logger.LogInformation(
+                "TargetMailbox '{TargetMailbox}' differs from NewEmail '{NewEmail}'. Using NewEmail as the M365 sign-in UPN for PRF.",
+                targetMailbox, newEmail);
+        }
+
+        return newEmail ?? targetMailbox;
+    }
+
+    private static string? NormalizePlainMailbox(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return null;
+
+        var trimmed = value.Trim();
+        try
+        {
+            var addr = new MailAddress(trimmed);
+            return addr.Address.Equals(trimmed, StringComparison.OrdinalIgnoreCase)
+                ? addr.Address
+                : null;
+        }
+        catch
+        {
+            return null;
+        }
     }
 }

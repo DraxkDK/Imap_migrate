@@ -7,6 +7,7 @@
     <div class="card-body">
         <div class="alert alert-info small">
             CSV format: <code>FullName,WindowsUsername,ComputerName,OldEmail,NewEmail,TargetMailbox,Status</code><br>
+            For M365 auto-profile creation, <code>NewEmail</code> or <code>TargetMailbox</code> must be the real sign-in UPN/email, for example <code>user@domain.com</code>.<br>
             <a asp-action="DownloadTemplate" class="fw-semibold">Download template CSV</a>
         </div>
         <form asp-action="ImportCsv" asp-route-batchId="@batch?.BatchId" method="post" enctype="multipart/form-data">

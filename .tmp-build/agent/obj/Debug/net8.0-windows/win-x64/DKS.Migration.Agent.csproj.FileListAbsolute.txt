@@ -1,0 +1,6 @@
+C:\Users\thanh\Documents\GitHub\Imap_migrate\.tmp-build\agent\obj\Debug\net8.0-windows\win-x64\DKS.Migration.Agent.csproj.AssemblyReference.cache
+C:\Users\thanh\Documents\GitHub\Imap_migrate\.tmp-build\agent\obj\Debug\net8.0-windows\win-x64\DKS.Migration.Agent.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\thanh\Documents\GitHub\Imap_migrate\.tmp-build\agent\obj\Debug\net8.0-windows\win-x64\DKS.Migration.Agent.AssemblyInfoInputs.cache
+C:\Users\thanh\Documents\GitHub\Imap_migrate\.tmp-build\agent\obj\Debug\net8.0-windows\win-x64\DKS.Migration.Agent.AssemblyInfo.cs
+C:\Users\thanh\Documents\GitHub\Imap_migrate\.tmp-build\agent\obj\Debug\net8.0-windows\win-x64\DKS.Migration.Agent.csproj.CoreCompileInputs.cache
+C:\Users\thanh\Documents\GitHub\Imap_migrate\.tmp-build\agent\obj\Debug\net8.0-windows\win-x64\DKS.Migration.Agent.sourcelink.json

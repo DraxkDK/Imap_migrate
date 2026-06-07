@@ -1,0 +1,10 @@
+C:\Users\thanh\Documents\GitHub\Imap_migrate\.tmp-build\portal\obj\Debug\net8.0\DKS.Migration.Portal.csproj.AssemblyReference.cache
+C:\Users\thanh\Documents\GitHub\Imap_migrate\.tmp-build\portal\obj\Debug\net8.0\rpswa.dswa.cache.json
+C:\Users\thanh\Documents\GitHub\Imap_migrate\.tmp-build\portal\obj\Debug\net8.0\DKS.Migration.Portal.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\thanh\Documents\GitHub\Imap_migrate\.tmp-build\portal\obj\Debug\net8.0\DKS.Migration.Portal.AssemblyInfoInputs.cache
+C:\Users\thanh\Documents\GitHub\Imap_migrate\.tmp-build\portal\obj\Debug\net8.0\DKS.Migration.Portal.AssemblyInfo.cs
+C:\Users\thanh\Documents\GitHub\Imap_migrate\.tmp-build\portal\obj\Debug\net8.0\DKS.Migration.Portal.csproj.CoreCompileInputs.cache
+C:\Users\thanh\Documents\GitHub\Imap_migrate\.tmp-build\portal\obj\Debug\net8.0\DKS.Migration.Portal.MvcApplicationPartsAssemblyInfo.cache
+C:\Users\thanh\Documents\GitHub\Imap_migrate\.tmp-build\portal\obj\Debug\net8.0\DKS.Migration.Portal.RazorAssemblyInfo.cache
+C:\Users\thanh\Documents\GitHub\Imap_migrate\.tmp-build\portal\obj\Debug\net8.0\DKS.Migration.Portal.RazorAssemblyInfo.cs
+C:\Users\thanh\Documents\GitHub\Imap_migrate\.tmp-build\portal\obj\Debug\net8.0\DKS.Migration.Portal.sourcelink.json

@@ -51,27 +51,29 @@ public class UsersController : Controller
         var records = csv.GetRecords<CsvUserRecord>().ToList();
         foreach (var r in records)
         {
-            if (string.IsNullOrWhiteSpace(r.WindowsUsername)) continue;
-            var existing = await _db.Users.FirstOrDefaultAsync(u => u.BatchId == batchId && u.WindowsUsername == r.WindowsUsername);
+            var windowsUsername = NormalizeField(r.WindowsUsername);
+            if (string.IsNullOrWhiteSpace(windowsUsername)) continue;
+
+            var existing = await _db.Users.FirstOrDefaultAsync(u => u.BatchId == batchId && u.WindowsUsername == windowsUsername);
             if (existing != null)
             {
-                existing.FullName = r.FullName;
-                existing.ComputerName = r.ComputerName;
-                existing.OldEmail = r.OldEmail;
-                existing.NewEmail = r.NewEmail;
-                existing.TargetMailbox = r.TargetMailbox;
+                existing.FullName = NormalizeField(r.FullName);
+                existing.ComputerName = NormalizeField(r.ComputerName);
+                existing.OldEmail = NormalizeField(r.OldEmail);
+                existing.NewEmail = NormalizeField(r.NewEmail);
+                existing.TargetMailbox = NormalizeField(r.TargetMailbox);
             }
             else
             {
                 _db.Users.Add(new MigrationUser
                 {
                     BatchId = batchId,
-                    FullName = r.FullName,
-                    WindowsUsername = r.WindowsUsername,
-                    ComputerName = r.ComputerName,
-                    OldEmail = r.OldEmail,
-                    NewEmail = r.NewEmail,
-                    TargetMailbox = r.TargetMailbox,
+                    FullName = NormalizeField(r.FullName),
+                    WindowsUsername = windowsUsername,
+                    ComputerName = NormalizeField(r.ComputerName),
+                    OldEmail = NormalizeField(r.OldEmail),
+                    NewEmail = NormalizeField(r.NewEmail),
+                    TargetMailbox = NormalizeField(r.TargetMailbox),
                     Status = UserMigrationStatus.Pending
                 });
             }
@@ -88,6 +90,11 @@ public class UsersController : Controller
                   "Nguyen Van A,nvana,PC-KETOAN01,nvana@oldmail.com,nvana@abc.com,nvana@abc.com,Pending\n" +
                   "Tran Thi B,ttb,PC-SALE02,ttb@oldmail.com,ttb@abc.com,ttb@abc.com,Pending";
         return File(System.Text.Encoding.UTF8.GetBytes(csv), "text/csv", "user_mapping_template.csv");
+    }
+
+    private static string? NormalizeField(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
     }
 }
 
