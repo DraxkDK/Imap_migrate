@@ -1,0 +1,4 @@
+agent-exe/
+Installer/publish/
+*.msi
+*.wixpdb

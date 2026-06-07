@@ -1,7 +1,14 @@
 using DKS.Migration.Agent.Models;
 using DKS.Migration.Agent.Services;
 
-var builder = Host.CreateApplicationBuilder(args);
+// Content root = the exe's own folder, so appsettings.json next to the exe is
+// always read — even when the user double-clicks or runs it from another path
+// ("copy & run" deployment).
+var builder = Host.CreateApplicationBuilder(new HostApplicationBuilderSettings
+{
+    Args = args,
+    ContentRootPath = AppContext.BaseDirectory,
+});
 
 // Load config from appsettings + registry + environment.
 // Precedence (low → high): appsettings.json → HKLM registry (written by MSI) → env vars.
