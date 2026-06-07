@@ -1,0 +1,62 @@
+@using Microsoft.AspNetCore.Mvc.Rendering
+@inject DKS.Migration.Portal.Data.AppDbContext Db
+@model IEnumerable<DKS.Migration.Portal.Models.MigrationUser>
+@{
+    ViewData["Title"] = "User Mapping";
+    var batches = await Db.MigrationBatches.Include(b => b.Customer).OrderByDescending(b => b.CreatedAt).ToListAsync();
+}
+
+@if (ViewBag.BatchId == null)
+{
+    <div class="alert alert-info mb-3 d-flex align-items-center gap-3">
+        <span>Select a batch to import users:</span>
+        <div class="d-flex gap-2 flex-wrap">
+        @foreach (var b in batches)
+        {
+            <a asp-action="Index" asp-route-batchId="@b.BatchId"
+               class="btn btn-sm btn-outline-primary">
+                @b.Customer?.CustomerCode — @b.BatchName
+            </a>
+        }
+        </div>
+    </div>
+}
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        User Mapping @(ViewBag.BatchId != null ? $"— Batch #{ViewBag.BatchId}" : "(all batches)")
+        <div class="d-flex gap-2">
+            <a asp-controller="Users" asp-action="DownloadTemplate" class="btn btn-sm btn-outline-secondary">&#11015; CSV Template</a>
+            @if (ViewBag.BatchId != null)
+            {
+                <a asp-action="ImportCsv" asp-route-batchId="@ViewBag.BatchId" class="btn btn-sm btn-primary">&#11014; Import CSV</a>
+            }
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead><tr><th>Full Name</th><th>Windows User</th><th>Computer</th><th>Old Email</th><th>New Email</th><th>Target Mailbox</th><th>Status</th></tr></thead>
+            <tbody>
+            @foreach (var u in Model)
+            {
+                var sCls = u.Status == DKS.Migration.Portal.Models.UserMigrationStatus.Completed ? "bg-success" :
+                           u.Status == DKS.Migration.Portal.Models.UserMigrationStatus.Failed ? "bg-danger" :
+                           u.Status == DKS.Migration.Portal.Models.UserMigrationStatus.InProgress ? "bg-info" : "bg-secondary";
+                <tr>
+                    <td>@u.FullName</td>
+                    <td><code>@u.WindowsUsername</code></td>
+                    <td>@u.ComputerName</td>
+                    <td class="text-muted small">@u.OldEmail</td>
+                    <td class="text-muted small">@u.NewEmail</td>
+                    <td class="text-muted small">@u.TargetMailbox</td>
+                    <td><span class="badge @sCls">@u.Status</span></td>
+                </tr>
+            }
+            @if (!Model.Any())
+            {
+                <tr><td colspan="7" class="text-center text-muted py-4">No users mapped yet. <a asp-action="DownloadTemplate">Download template</a> and import CSV.</td></tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

@@ -1,0 +1,36 @@
+@model DKS.Migration.Portal.Models.Customer
+@{ ViewData["Title"] = "Add Customer"; }
+
+<div class="row justify-content-center">
+<div class="col-md-6">
+<div class="card">
+    <div class="card-header">Add Customer</div>
+    <div class="card-body">
+        <form asp-action="Create" method="post">
+            @Html.AntiForgeryToken()
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+            <div class="mb-3">
+                <label asp-for="CustomerName" class="form-label fw-semibold"></label>
+                <input asp-for="CustomerName" class="form-control" placeholder="ABC Company" />
+                <span asp-validation-for="CustomerName" class="text-danger small"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="CustomerCode" class="form-label fw-semibold"></label>
+                <input asp-for="CustomerCode" class="form-control" placeholder="ABC" />
+                <span asp-validation-for="CustomerCode" class="text-danger small"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="DestinationDomain" class="form-label fw-semibold"></label>
+                <input asp-for="DestinationDomain" class="form-control" placeholder="abc.com" />
+            </div>
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">Save Customer</button>
+                <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+</div>
+</div>
+
+@section Scripts { @{await Html.RenderPartialAsync("_ValidationScriptsPartial");} }

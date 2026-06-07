@@ -1,0 +1,37 @@
+@model IEnumerable<DKS.Migration.Portal.Models.MigrationBatch>
+@{ ViewData["Title"] = "Migration Batches"; }
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        Migration Batches
+        <a asp-action="Create" class="btn btn-sm btn-primary">+ New Batch</a>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead><tr><th>Batch Name</th><th>Customer</th><th>Source</th><th>Destination</th><th>Mode</th><th>Cutover</th><th>Devices</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+            @foreach (var b in Model)
+            {
+                var statusCls = b.Status == DKS.Migration.Portal.Models.BatchStatus.Active ? "bg-success" :
+                                b.Status == DKS.Migration.Portal.Models.BatchStatus.Completed ? "bg-primary" :
+                                b.Status == DKS.Migration.Portal.Models.BatchStatus.Failed ? "bg-danger" : "bg-secondary";
+                <tr>
+                    <td><a asp-action="Details" asp-route-id="@b.BatchId"><strong>@b.BatchName</strong></a></td>
+                    <td>@b.Customer?.CustomerCode</td>
+                    <td><span class="badge bg-light text-dark border">@b.SourceType</span></td>
+                    <td><span class="badge bg-light text-dark border">@b.DestinationType</span></td>
+                    <td class="small text-muted">@b.Mode.ToString().Replace("ExportReconfigureImport","Full")</td>
+                    <td class="small">@b.CutoverTime?.ToString("yyyy-MM-dd HH:mm")</td>
+                    <td><a asp-controller="Devices" asp-action="Index" asp-route-batchId="@b.BatchId" class="badge bg-info text-decoration-none">@b.Devices.Count</a></td>
+                    <td><span class="badge @statusCls">@b.Status</span></td>
+                    <td><a asp-action="Details" asp-route-id="@b.BatchId" class="btn btn-xs btn-outline-secondary">Details</a></td>
+                </tr>
+            }
+            @if (!Model.Any())
+            {
+                <tr><td colspan="9" class="text-center text-muted py-4">No batches yet.</td></tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

@@ -1,0 +1,28 @@
+@model IEnumerable<DKS.Migration.Portal.Models.PstFile>
+@{ ViewData["Title"] = "PST Files"; }
+
+<div class="card">
+    <div class="card-header">PST Files</div>
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead><tr><th>File</th><th>Device</th><th>Source Path</th><th>Backup Path</th><th>Size</th><th>SHA256</th><th>Export</th><th>Import</th><th>Exported</th></tr></thead>
+            <tbody>
+            @foreach (var p in Model)
+            {
+                <tr>
+                    <td><strong>@p.FileName</strong></td>
+                    <td><a asp-controller="Devices" asp-action="Details" asp-route-id="@p.DeviceId">@p.Device?.ComputerName</a></td>
+                    <td class="text-muted small text-truncate" style="max-width:200px" title="@p.SourcePath">@p.SourcePath</td>
+                    <td class="text-muted small text-truncate" style="max-width:200px" title="@p.BackupPath">@p.BackupPath</td>
+                    <td class="small text-nowrap">@($"{p.SizeBytes / 1024.0 / 1024 / 1024:F1}") GB</td>
+                    <td class="text-muted small"><span title="@p.Sha256">@(p.Sha256?[..8] ?? "-")...</span></td>
+                    <td><span class="badge @(p.ExportStatus == DKS.Migration.Portal.Models.PstExportStatus.Exported ? "bg-success" : p.ExportStatus == DKS.Migration.Portal.Models.PstExportStatus.Failed ? "bg-danger" : "bg-secondary")">@p.ExportStatus</span></td>
+                    <td><span class="badge @(p.ImportStatus == DKS.Migration.Portal.Models.PstImportStatus.Imported ? "bg-success" : p.ImportStatus == DKS.Migration.Portal.Models.PstImportStatus.Failed ? "bg-danger" : "bg-secondary")">@p.ImportStatus</span></td>
+                    <td class="text-muted small">@p.ExportedAt?.ToString("MM-dd HH:mm")</td>
+                </tr>
+            }
+            @if (!Model.Any()) { <tr><td colspan="9" class="text-center text-muted py-4">No PST files found.</td></tr> }
+            </tbody>
+        </table>
+    </div>
+</div>

@@ -1,0 +1,80 @@
+@model DKS.Migration.Portal.Models.MigrationBatch
+@{ ViewData["Title"] = Model.BatchName; }
+
+<div class="row g-3 mb-3">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                Batch Details
+                <a asp-action="Edit" asp-route-id="@Model.BatchId" class="btn btn-sm btn-outline-secondary">Edit</a>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-4 text-muted">Customer</dt><dd class="col-8">@Model.Customer?.CustomerName (@Model.Customer?.CustomerCode)</dd>
+                    <dt class="col-4 text-muted">Source</dt><dd class="col-8">@Model.SourceType → @Model.DestinationType</dd>
+                    <dt class="col-4 text-muted">Mode</dt><dd class="col-8"><span class="badge bg-primary">@Model.Mode</span></dd>
+                    <dt class="col-4 text-muted">Backup Path</dt><dd class="col-8"><code>@Model.BackupPstPath</code></dd>
+                    <dt class="col-4 text-muted">Cutover</dt><dd class="col-8">@Model.CutoverTime?.ToString("yyyy-MM-dd HH:mm")</dd>
+                    <dt class="col-4 text-muted">Import Folder</dt><dd class="col-8">@Model.ImportTargetFolder</dd>
+                    <dt class="col-4 text-muted">Options</dt>
+                    <dd class="col-8">
+                        @if (Model.RequireUserLogin) { <span class="badge bg-secondary me-1">Require Login</span> }
+                        @if (Model.CloseOutlookAutomatically) { <span class="badge bg-secondary me-1">Auto Close Outlook</span> }
+                        @if (Model.RollbackEnabled) { <span class="badge bg-warning text-dark me-1">Rollback On</span> }
+                    </dd>
+                    <dt class="col-4 text-muted">Status</dt>
+                    <dd class="col-8"><span class="badge @(Model.Status == DKS.Migration.Portal.Models.BatchStatus.Active ? "bg-success" : "bg-secondary")">@Model.Status</span></dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-header">Quick Links</div>
+            <div class="card-body d-flex flex-column gap-2">
+                <a asp-controller="Users" asp-action="ImportCsv" asp-route-batchId="@Model.BatchId" class="btn btn-outline-primary btn-sm">&#128101; Import Users CSV</a>
+                <a asp-controller="Users" asp-action="Index" asp-route-batchId="@Model.BatchId" class="btn btn-outline-secondary btn-sm">View Users (@Model.Users.Count)</a>
+                <a asp-controller="Devices" asp-action="Index" asp-route-batchId="@Model.BatchId" class="btn btn-outline-secondary btn-sm">View Devices (@Model.Devices.Count)</a>
+                <a asp-controller="PstFiles" asp-action="Index" asp-route-batchId="@Model.BatchId" class="btn btn-outline-secondary btn-sm">View PST Files</a>
+                <a asp-controller="AgentInstaller" asp-action="Index" asp-route-batchId="@Model.BatchId" class="btn btn-outline-success btn-sm">&#11015; Agent Installer</a>
+                <a asp-controller="Logs" asp-action="Index" asp-route-batchId="@Model.BatchId" class="btn btn-outline-secondary btn-sm">View Logs</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        Devices in this Batch
+        <span class="badge bg-secondary">@Model.Devices.Count total</span>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead><tr><th>Computer</th><th>User</th><th>Old Email</th><th>New Mailbox</th><th>Outlook</th><th>PST</th><th>Status</th><th>Last Check-in</th><th></th></tr></thead>
+            <tbody>
+            @foreach (var d in Model.Devices.OrderBy(x => x.ComputerName))
+            {
+                var sCls = d.CurrentStatus == DKS.Migration.Portal.Models.DeviceStatus.Completed ? "bg-success" :
+                           d.CurrentStatus == DKS.Migration.Portal.Models.DeviceStatus.Failed ? "bg-danger" :
+                           d.CurrentStatus == DKS.Migration.Portal.Models.DeviceStatus.NeedManualAction ? "bg-warning text-dark" :
+                           d.CurrentStatus == DKS.Migration.Portal.Models.DeviceStatus.AgentOnline ? "bg-info" : "bg-secondary";
+                <tr>
+                    <td><a asp-controller="Devices" asp-action="Details" asp-route-id="@d.DeviceId"><strong>@d.ComputerName</strong></a></td>
+                    <td>@d.WindowsUsername</td>
+                    <td class="text-muted small">@d.OldEmail</td>
+                    <td class="text-muted small">@d.NewMailbox</td>
+                    <td class="small">@d.OutlookVersion</td>
+                    <td><span class="badge bg-light text-dark border">@d.PstCount PST</span></td>
+                    <td><span class="badge @sCls" style="font-size:11px">@d.CurrentStatus</span></td>
+                    <td class="text-muted small">@d.LastCheckIn?.ToString("MM-dd HH:mm")</td>
+                    <td><a asp-controller="Devices" asp-action="Details" asp-route-id="@d.DeviceId" class="btn btn-xs btn-outline-secondary">Detail</a></td>
+                </tr>
+            }
+            @if (!Model.Devices.Any())
+            {
+                <tr><td colspan="9" class="text-center text-muted py-4">No devices yet. Install the agent on user machines.</td></tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

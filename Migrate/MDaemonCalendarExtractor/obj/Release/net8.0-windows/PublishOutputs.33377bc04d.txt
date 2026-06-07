@@ -1,0 +1,5 @@
+C:\Users\ThanhPV\Downloads\Migrate\MDaemonCalendarExtractor\publish\MDaemonCalendarExtractor.exe
+C:\Users\ThanhPV\Downloads\Migrate\MDaemonCalendarExtractor\publish\MDaemonCalendarExtractor.dll
+C:\Users\ThanhPV\Downloads\Migrate\MDaemonCalendarExtractor\publish\MDaemonCalendarExtractor.deps.json
+C:\Users\ThanhPV\Downloads\Migrate\MDaemonCalendarExtractor\publish\MDaemonCalendarExtractor.runtimeconfig.json
+C:\Users\ThanhPV\Downloads\Migrate\MDaemonCalendarExtractor\publish\MDaemonCalendarExtractor.pdb

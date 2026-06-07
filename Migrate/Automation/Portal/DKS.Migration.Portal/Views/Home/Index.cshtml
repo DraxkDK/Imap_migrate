@@ -1,0 +1,120 @@
+﻿@using DKS.Migration.Portal.Controllers
+@model DashboardViewModel
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3">
+        <div class="card stat-card">
+            <div class="num text-primary">@Model.TotalCustomers</div>
+            <div class="lbl">Customers</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card stat-card">
+            <div class="num text-info">@Model.TotalBatches</div>
+            <div class="lbl">Migration Batches</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card stat-card">
+            <div class="num text-warning">@Model.TotalDevices</div>
+            <div class="lbl">Devices</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card stat-card">
+            <div class="num text-success">@Model.CompletedDevices</div>
+            <div class="lbl">Completed</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card stat-card border-danger">
+            <div class="num text-danger">@Model.FailedDevices</div>
+            <div class="lbl">Failed Devices</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card stat-card border-secondary">
+            <div class="num text-secondary">@Model.TotalUsers</div>
+            <div class="lbl">Mapped Users</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card stat-card">
+            <div class="num text-primary">@(Model.TotalDevices > 0 ? (Model.CompletedDevices * 100 / Model.TotalDevices) : 0)%</div>
+            <div class="lbl">Overall Progress</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                Active Batches
+                <a asp-controller="Batches" asp-action="Create" class="btn btn-sm btn-primary">+ New Batch</a>
+            </div>
+            <div class="card-body p-0">
+                @if (!Model.ActiveBatches.Any())
+                {
+                    <div class="p-4 text-muted text-center">No active batches. <a asp-controller="Batches" asp-action="Create">Create one</a>.</div>
+                }
+                else
+                {
+                    <table class="table table-hover mb-0">
+                        <thead><tr><th>Batch</th><th>Customer</th><th>Devices</th><th>Cutover</th></tr></thead>
+                        <tbody>
+                        @foreach (var b in Model.ActiveBatches)
+                        {
+                            <tr>
+                                <td><a asp-controller="Batches" asp-action="Details" asp-route-id="@b.BatchId">@b.BatchName</a></td>
+                                <td>@b.Customer?.CustomerCode</td>
+                                <td><span class="badge bg-secondary">@b.Devices.Count</span></td>
+                                <td class="text-muted small">@b.CutoverTime?.ToString("MM-dd HH:mm")</td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                }
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                Recent Logs
+                <a asp-controller="Logs" asp-action="Index" class="btn btn-sm btn-outline-secondary">View All</a>
+            </div>
+            <div class="card-body p-0">
+                @if (!Model.RecentLogs.Any())
+                {
+                    <div class="p-4 text-muted text-center">No logs yet.</div>
+                }
+                else
+                {
+                    <table class="table table-sm mb-0">
+                        <thead><tr><th>Time</th><th>Device</th><th>Step</th><th>Message</th></tr></thead>
+                        <tbody>
+                        @foreach (var l in Model.RecentLogs)
+                        {
+                            var cls = l.Level == DKS.Migration.Portal.Models.LogLevel.Error ? "table-danger" :
+                                      l.Level == DKS.Migration.Portal.Models.LogLevel.Warning ? "table-warning" : "";
+                            <tr class="@cls">
+                                <td class="text-muted small text-nowrap">@l.CreatedAt.ToString("HH:mm:ss")</td>
+                                <td class="small">@l.Device?.ComputerName</td>
+                                <td class="small">@l.Step</td>
+                                <td class="small text-truncate" style="max-width:200px">@l.Message</td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                }
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,14 @@
+C:\Users\ThanhPV\Downloads\Migrate\MDaemonCalendarExtractor\bin\Release\net8.0-windows\MDaemonCalendarExtractor.exe
+C:\Users\ThanhPV\Downloads\Migrate\MDaemonCalendarExtractor\bin\Release\net8.0-windows\MDaemonCalendarExtractor.deps.json
+C:\Users\ThanhPV\Downloads\Migrate\MDaemonCalendarExtractor\bin\Release\net8.0-windows\MDaemonCalendarExtractor.runtimeconfig.json
+C:\Users\ThanhPV\Downloads\Migrate\MDaemonCalendarExtractor\bin\Release\net8.0-windows\MDaemonCalendarExtractor.dll
+C:\Users\ThanhPV\Downloads\Migrate\MDaemonCalendarExtractor\bin\Release\net8.0-windows\MDaemonCalendarExtractor.pdb
+C:\Users\ThanhPV\Downloads\Migrate\MDaemonCalendarExtractor\obj\Release\net8.0-windows\MDaemonCalendarExtractor.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\ThanhPV\Downloads\Migrate\MDaemonCalendarExtractor\obj\Release\net8.0-windows\MDaemonCalendarExtractor.AssemblyInfoInputs.cache
+C:\Users\ThanhPV\Downloads\Migrate\MDaemonCalendarExtractor\obj\Release\net8.0-windows\MDaemonCalendarExtractor.AssemblyInfo.cs
+C:\Users\ThanhPV\Downloads\Migrate\MDaemonCalendarExtractor\obj\Release\net8.0-windows\MDaemonCalendarExtractor.csproj.CoreCompileInputs.cache
+C:\Users\ThanhPV\Downloads\Migrate\MDaemonCalendarExtractor\obj\Release\net8.0-windows\MDaemonCalendarExtractor.dll
+C:\Users\ThanhPV\Downloads\Migrate\MDaemonCalendarExtractor\obj\Release\net8.0-windows\refint\MDaemonCalendarExtractor.dll
+C:\Users\ThanhPV\Downloads\Migrate\MDaemonCalendarExtractor\obj\Release\net8.0-windows\MDaemonCalendarExtractor.pdb
+C:\Users\ThanhPV\Downloads\Migrate\MDaemonCalendarExtractor\obj\Release\net8.0-windows\MDaemonCalendarExtractor.genruntimeconfig.cache
+C:\Users\ThanhPV\Downloads\Migrate\MDaemonCalendarExtractor\obj\Release\net8.0-windows\ref\MDaemonCalendarExtractor.dll

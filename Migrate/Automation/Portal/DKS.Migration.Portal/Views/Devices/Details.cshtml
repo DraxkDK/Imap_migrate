@@ -1,0 +1,119 @@
+@model DKS.Migration.Portal.Models.Device
+@{ ViewData["Title"] = Model.ComputerName; }
+
+<div class="row g-3 mb-3">
+    <div class="col-md-5">
+        <div class="card h-100">
+            <div class="card-header">Device Info</div>
+            <div class="card-body">
+                <dl class="row mb-0 small">
+                    <dt class="col-5 text-muted">Computer</dt><dd class="col-7"><strong>@Model.ComputerName</strong></dd>
+                    <dt class="col-5 text-muted">Windows User</dt><dd class="col-7">@Model.WindowsUsername</dd>
+                    <dt class="col-5 text-muted">OS</dt><dd class="col-7">@Model.OsVersion</dd>
+                    <dt class="col-5 text-muted">Outlook</dt><dd class="col-7">@Model.OutlookVersion</dd>
+                    <dt class="col-5 text-muted">Profile</dt><dd class="col-7">@Model.CurrentProfile</dd>
+                    <dt class="col-5 text-muted">Old Account</dt><dd class="col-7">@Model.OldAccountType</dd>
+                    <dt class="col-5 text-muted">Old Email</dt><dd class="col-7">@Model.OldEmail</dd>
+                    <dt class="col-5 text-muted">New Mailbox</dt><dd class="col-7">@Model.NewMailbox</dd>
+                    <dt class="col-5 text-muted">PST Count</dt><dd class="col-7">@Model.PstCount files / @($"{Model.TotalPstSizeBytes / 1024.0 / 1024 / 1024:F1}") GB</dd>
+                    <dt class="col-5 text-muted">Agent Ver.</dt><dd class="col-7">@Model.AgentVersion</dd>
+                    <dt class="col-5 text-muted">Last Check-in</dt><dd class="col-7">@Model.LastCheckIn?.ToString("yyyy-MM-dd HH:mm:ss")</dd>
+                    <dt class="col-5 text-muted">Current Step</dt>
+                    <dd class="col-7">
+                        @{
+                            var sCls = Model.CurrentStatus == DKS.Migration.Portal.Models.DeviceStatus.Completed ? "bg-success" :
+                                       Model.CurrentStatus == DKS.Migration.Portal.Models.DeviceStatus.Failed ? "bg-danger" :
+                                       Model.CurrentStatus == DKS.Migration.Portal.Models.DeviceStatus.NeedManualAction ? "bg-warning text-dark" : "bg-secondary";
+                        }
+                        <span class="badge @sCls">@Model.CurrentStatus</span>
+                    </dd>
+                    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+                    {
+                        <dt class="col-5 text-muted">Error</dt><dd class="col-7 text-danger">@Model.ErrorMessage</dd>
+                    }
+                </dl>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-7">
+        <div class="card h-100">
+            <div class="card-header">Actions</div>
+            <div class="card-body">
+                <div class="row g-2">
+                    @foreach (var (cmd, label, cls) in new[]{ ("ScanOutlook","Scan Outlook","outline-primary"), ("ExportPst","Export PST","outline-warning"), ("ReconfigureProfile","Reconfigure Profile","outline-info"), ("ImportPst","Import PST","outline-success"), ("RetryFailed","Retry Failed Step","outline-secondary"), ("Rollback","Rollback Profile","outline-danger") })
+                    {
+                        <div class="col-md-4">
+                            <form asp-action="SendCommand" asp-route-id="@Model.DeviceId" method="post">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="command" value="@cmd" />
+                                <button class="btn btn-sm btn-@cls w-100">@label</button>
+                            </form>
+                        </div>
+                    }
+                    <div class="col-md-4">
+                        <a asp-action="DownloadLog" asp-route-id="@Model.DeviceId" class="btn btn-sm btn-outline-secondary w-100">Download Log</a>
+                    </div>
+                    <div class="col-md-4">
+                        <form asp-action="MarkManualCompleted" asp-route-id="@Model.DeviceId" method="post"
+                              onsubmit="return confirm('Mark as manually completed?')">
+                            @Html.AntiForgeryToken()
+                            <button class="btn btn-sm btn-success w-100">Mark Completed</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">PST Files (@Model.PstFiles.Count)</div>
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0">
+                    <thead><tr><th>File</th><th>Source Path</th><th>Backup Path</th><th>Size</th><th>SHA256</th><th>Export</th><th>Import</th></tr></thead>
+                    <tbody>
+                    @foreach (var p in Model.PstFiles)
+                    {
+                        <tr>
+                            <td><strong>@p.FileName</strong></td>
+                            <td class="text-muted small">@p.SourcePath</td>
+                            <td class="text-muted small">@p.BackupPath</td>
+                            <td class="small text-nowrap">@($"{p.SizeBytes / 1024.0 / 1024 / 1024:F1}") GB</td>
+                            <td class="text-muted small"><span title="@p.Sha256">@(p.Sha256?[..8] ?? "-")...</span></td>
+                            <td><span class="badge @(p.ExportStatus == DKS.Migration.Portal.Models.PstExportStatus.Exported ? "bg-success" : p.ExportStatus == DKS.Migration.Portal.Models.PstExportStatus.Failed ? "bg-danger" : "bg-secondary")">@p.ExportStatus</span></td>
+                            <td><span class="badge @(p.ImportStatus == DKS.Migration.Portal.Models.PstImportStatus.Imported ? "bg-success" : p.ImportStatus == DKS.Migration.Portal.Models.PstImportStatus.Failed ? "bg-danger" : "bg-secondary")">@p.ImportStatus</span></td>
+                        </tr>
+                    }
+                    @if (!Model.PstFiles.Any()) { <tr><td colspan="7" class="text-center text-muted py-3">No PST files detected yet.</td></tr> }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">Recent Logs</div>
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0">
+                    <thead><tr><th>Time</th><th>Level</th><th>Step</th><th>Message</th></tr></thead>
+                    <tbody>
+                    @foreach (var l in Model.Logs.OrderByDescending(x => x.CreatedAt))
+                    {
+                        var cls = l.Level == DKS.Migration.Portal.Models.LogLevel.Error ? "table-danger" :
+                                  l.Level == DKS.Migration.Portal.Models.LogLevel.Warning ? "table-warning" : "";
+                        <tr class="@cls">
+                            <td class="text-muted small text-nowrap">@l.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                            <td><span class="badge @(l.Level == DKS.Migration.Portal.Models.LogLevel.Error ? "bg-danger" : l.Level == DKS.Migration.Portal.Models.LogLevel.Warning ? "bg-warning text-dark" : "bg-secondary")">@l.Level</span></td>
+                            <td class="small">@l.Step</td>
+                            <td class="small">@l.Message</td>
+                        </tr>
+                    }
+                    @if (!Model.Logs.Any()) { <tr><td colspan="4" class="text-center text-muted py-3">No logs yet.</td></tr> }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

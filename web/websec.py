@@ -109,9 +109,11 @@ def init_security(app) -> None:
     # When running behind Nginx/Caddy (which terminate TLS), trust the
     # X-Forwarded-* headers from exactly one proxy hop so request.is_secure,
     # request.remote_addr, and url_for(_external) reflect the real client/scheme.
+    # x_prefix honours X-Forwarded-Prefix so url_for() emits the right path when
+    # the app is mounted under a sub-path (e.g. /imap behind the shared proxy).
     if app.config.get("BEHIND_TLS_PROXY", True):
         app.wsgi_app = ProxyFix(
-            app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1
+            app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1, x_prefix=1
         )
 
     app.before_request(_csrf_protect)

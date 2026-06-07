@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dotnet build *)",
+      "PowerShell(New-Item -ItemType Directory -Force \"c:\\\\Users\\\\ThanhPV\\\\Downloads\\\\Migrate\\\\MDaemonCalendarMigration\\\\Models\")",
+      "PowerShell(New-Item -ItemType Directory -Force \"c:\\\\Users\\\\ThanhPV\\\\Downloads\\\\Migrate\\\\MDaemonCalendarMigration\\\\Services\")",
+      "PowerShell(New-Item -ItemType Directory -Force \"c:\\\\Users\\\\ThanhPV\\\\Downloads\\\\Migrate\\\\MDaemonCalendarMigration\\\\Security\")",
+      "PowerShell(dotnet --version)",
+      "PowerShell(dotnet workload list 2>&1)",
+      "PowerShell(dotnet nuget locals all --list 2>&1)",
+      "PowerShell(ls \"$env:ProgramFiles\\\\dotnet\\\\packs\" | Select-Object Name | Sort-Object Name)",
+      "PowerShell(dotnet nuget add source https://api.nuget.org/v3/index.json --name \"nuget.org\" 2>&1)",
+      "PowerShell(ls \"c:\\\\Users\\\\ThanhPV\\\\Downloads\\\\Migrate\\\\MDaemonCalendarMigration\\\\publish\\\\win-x64\" | Select-Object Name, @{N=\"SizeMB\";E={[math]::Round\\($_.Length/1MB,1\\)}})"
+    ]
+  }
+}

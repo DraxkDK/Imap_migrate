@@ -1,0 +1,38 @@
+@model IEnumerable<DKS.Migration.Portal.Models.Customer>
+@{ ViewData["Title"] = "Customers"; }
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        Customers
+        <a asp-action="Create" class="btn btn-sm btn-primary">+ Add Customer</a>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead><tr><th>Customer Name</th><th>Code</th><th>Domain</th><th>Batches</th><th>Created</th><th></th></tr></thead>
+            <tbody>
+            @foreach (var c in Model)
+            {
+                <tr>
+                    <td><strong>@c.CustomerName</strong></td>
+                    <td><span class="badge bg-secondary">@c.CustomerCode</span></td>
+                    <td>@c.DestinationDomain</td>
+                    <td><a asp-controller="Batches" asp-action="Index" class="badge bg-info text-decoration-none">@c.Batches.Count batches</a></td>
+                    <td class="text-muted small">@c.CreatedAt.ToString("yyyy-MM-dd")</td>
+                    <td class="text-end">
+                        <a asp-action="Edit" asp-route-id="@c.CustomerId" class="btn btn-xs btn-outline-secondary">Edit</a>
+                        <form asp-action="Delete" asp-route-id="@c.CustomerId" method="post" class="d-inline"
+                              onsubmit="return confirm('Delete @c.CustomerName?')">
+                            @Html.AntiForgeryToken()
+                            <button class="btn btn-xs btn-outline-danger">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+            @if (!Model.Any())
+            {
+                <tr><td colspan="6" class="text-center text-muted py-4">No customers yet. <a asp-action="Create">Add one</a>.</td></tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

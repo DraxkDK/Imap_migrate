@@ -1,0 +1,50 @@
+@model IEnumerable<DKS.Migration.Portal.Models.Device>
+@{ ViewData["Title"] = "Devices"; }
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        Devices
+        <div class="d-flex gap-2 align-items-center">
+            <form method="get" class="d-flex gap-2">
+                @if (ViewBag.BatchId != null) { <input type="hidden" name="batchId" value="@ViewBag.BatchId" /> }
+                <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">All Statuses</option>
+                    @foreach (var s in Enum.GetNames(typeof(DKS.Migration.Portal.Models.DeviceStatus)))
+                    {
+                        <option value="@s" selected="@(ViewBag.Status == s)">@s</option>
+                    }
+                </select>
+            </form>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead><tr><th>Computer</th><th>User</th><th>Batch</th><th>Outlook</th><th>PST Count</th><th>Status</th><th>Last Check-in</th><th>Error</th><th></th></tr></thead>
+            <tbody>
+            @foreach (var d in Model)
+            {
+                var sCls = d.CurrentStatus == DKS.Migration.Portal.Models.DeviceStatus.Completed ? "bg-success" :
+                           d.CurrentStatus == DKS.Migration.Portal.Models.DeviceStatus.Failed ? "bg-danger" :
+                           d.CurrentStatus == DKS.Migration.Portal.Models.DeviceStatus.NeedManualAction ? "bg-warning text-dark" :
+                           d.CurrentStatus == DKS.Migration.Portal.Models.DeviceStatus.AgentOnline ? "bg-info" :
+                           d.CurrentStatus == DKS.Migration.Portal.Models.DeviceStatus.Pending ? "bg-light text-dark border" : "bg-secondary";
+                <tr>
+                    <td><a asp-action="Details" asp-route-id="@d.DeviceId"><strong>@d.ComputerName</strong></a></td>
+                    <td class="text-muted">@d.WindowsUsername</td>
+                    <td><a asp-controller="Batches" asp-action="Details" asp-route-id="@d.BatchId" class="small">@d.Batch?.Customer?.CustomerCode</a></td>
+                    <td class="small">@d.OutlookVersion</td>
+                    <td><span class="badge bg-light text-dark border">@d.PstCount</span></td>
+                    <td><span class="badge @sCls" style="font-size:11px">@d.CurrentStatus</span></td>
+                    <td class="text-muted small text-nowrap">@d.LastCheckIn?.ToString("MM-dd HH:mm")</td>
+                    <td class="text-danger small text-truncate" style="max-width:150px" title="@d.ErrorMessage">@d.ErrorMessage</td>
+                    <td><a asp-action="Details" asp-route-id="@d.DeviceId" class="btn btn-xs btn-outline-secondary">Detail</a></td>
+                </tr>
+            }
+            @if (!Model.Any())
+            {
+                <tr><td colspan="9" class="text-center text-muted py-4">No devices found. Install the agent on user machines.</td></tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

@@ -1,0 +1,4 @@
+SourceEmail,TargetMailbox
+user1@old-domain.com,user1@new-domain.com
+user2@old-domain.com,user2@new-domain.com
+user3@old-domain.com,user3@new-domain.com

@@ -1,0 +1,116 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - DKS Migration Portal</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <style>
+        body { background: #f0f2f5; }
+        .sidebar { width: 240px; min-height: 100vh; background: #1e293b; position: fixed; top: 0; left: 0; z-index: 100; padding-top: 0; }
+        .sidebar .brand { background: #0f172a; padding: 16px 20px; color: #fff; font-weight: 700; font-size: 15px; text-decoration: none; display: block; border-bottom: 1px solid #334155; }
+        .sidebar .brand small { display: block; font-weight: 400; font-size: 11px; color: #94a3b8; margin-top: 2px; }
+        .sidebar .nav-label { font-size: 10px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: .08em; padding: 16px 20px 4px; }
+        .sidebar .nav-link { color: #cbd5e1; padding: 8px 20px; font-size: 13.5px; display: flex; align-items: center; gap: 10px; border-radius: 0; transition: background .15s; }
+        .sidebar .nav-link:hover, .sidebar .nav-link.active { background: #334155; color: #fff; }
+        .sidebar .nav-link .icon { width: 18px; text-align: center; }
+        .main-content { margin-left: 240px; padding: 24px; }
+        .topbar { background: #fff; border-bottom: 1px solid #e2e8f0; padding: 12px 24px; margin: -24px -24px 24px; display: flex; align-items: center; justify-content: space-between; }
+        .topbar h5 { margin: 0; font-weight: 600; font-size: 16px; color: #1e293b; }
+        .card { border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,.05); }
+        .card-header { background: #fff; border-bottom: 1px solid #e2e8f0; font-weight: 600; font-size: 14px; }
+        .stat-card { text-align: center; padding: 20px; }
+        .stat-card .num { font-size: 32px; font-weight: 700; }
+        .stat-card .lbl { font-size: 12px; color: #64748b; text-transform: uppercase; letter-spacing: .05em; }
+        .badge-status { font-size: 11px; padding: 3px 8px; border-radius: 999px; font-weight: 500; }
+        .table th { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: #64748b; border-bottom: 2px solid #e2e8f0; }
+        .table td { font-size: 13.5px; vertical-align: middle; }
+        .btn-xs { padding: 2px 8px; font-size: 12px; }
+        .alert { border-radius: 6px; font-size: 13.5px; }
+    </style>
+</head>
+<body>
+<div class="sidebar">
+    <a class="brand" asp-controller="Home" asp-action="Index">
+        DKS Migration<br><small>Outlook Profile Agent Portal</small>
+    </a>
+    <div class="nav flex-column mt-1">
+        <div class="nav-label">Overview</div>
+        <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Home" ? "active" : "")"
+           asp-controller="Home" asp-action="Index">
+            <span class="icon">&#9881;</span> Dashboard
+        </a>
+        <div class="nav-label">Management</div>
+        <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Customers" ? "active" : "")"
+           asp-controller="Customers" asp-action="Index">
+            <span class="icon">&#127970;</span> Customers
+        </a>
+        <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Batches" ? "active" : "")"
+           asp-controller="Batches" asp-action="Index">
+            <span class="icon">&#128230;</span> Migration Batches
+        </a>
+        <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Devices" ? "active" : "")"
+           asp-controller="Devices" asp-action="Index">
+            <span class="icon">&#128187;</span> Devices
+        </a>
+        <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Users" ? "active" : "")"
+           asp-controller="Users" asp-action="Index">
+            <span class="icon">&#128101;</span> User Mapping
+        </a>
+        <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "PstFiles" ? "active" : "")"
+           asp-controller="PstFiles" asp-action="Index">
+            <span class="icon">&#128190;</span> PST Files
+        </a>
+        <div class="nav-label">Tools</div>
+        <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "AgentInstaller" ? "active" : "")"
+           asp-controller="AgentInstaller" asp-action="Index">
+            <span class="icon">&#11015;</span> Agent Installer
+        </a>
+        <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Logs" ? "active" : "")"
+           asp-controller="Logs" asp-action="Index">
+            <span class="icon">&#128196;</span> Logs
+        </a>
+        <div class="nav-label">Other Tools</div>
+        <a class="nav-link" href="/imap/">
+            <span class="icon">&#9993;</span> IMAP Migrate &#8599;
+        </a>
+    </div>
+</div>
+<div class="main-content">
+    <div class="topbar">
+        <h5>@(ViewData["Title"] ?? "DKS Migration Portal")</h5>
+        <small class="text-muted">@DateTime.Now.ToString("yyyy-MM-dd HH:mm")</small>
+    </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show mb-3" role="alert">
+            @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["Warning"] != null)
+    {
+        <div class="alert alert-warning alert-dismissible fade show mb-3" role="alert">
+            @TempData["Warning"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show mb-3" role="alert">
+            @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @RenderBody()
+</div>
+
+<script src="~/lib/jquery/dist/jquery.min.js"></script>
+<script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+<script src="~/js/site.js" asp-append-version="true"></script>
+@await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

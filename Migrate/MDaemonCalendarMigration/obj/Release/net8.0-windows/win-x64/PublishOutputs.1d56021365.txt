@@ -1,0 +1,2 @@
+C:\Users\ThanhPV\Downloads\Migrate\MDaemonCalendarMigration\publish\win-x64\MDaemonCalendarMigration.pdb
+C:\Users\ThanhPV\Downloads\Migrate\MDaemonCalendarMigration\publish\win-x64\MDaemonCalendarMigration.exe

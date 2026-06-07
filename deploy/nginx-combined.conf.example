@@ -1,0 +1,92 @@
+# ===========================================================================
+# Nginx reverse proxy — ONE domain, TWO apps ("1 web, 2 chức năng").
+#
+#   https://migrate.draxk.com/        -> DKS Automation Portal (.NET 8 / Kestrel)
+#                                          listening on 127.0.0.1:5000
+#   https://migrate.draxk.com/imap/   -> IMAP Migrate web UI (Flask / Gunicorn)
+#                                          listening on 127.0.0.1:8000
+#
+# Both backends listen on loopback only and are never exposed directly.
+# Nginx terminates TLS; each app trusts the X-Forwarded-* headers it sets.
+#
+# Setup:
+#   1. TLS cert:  sudo certbot --nginx -d migrate.draxk.com
+#   2. Copy to /etc/nginx/sites-available/migrate, symlink into sites-enabled,
+#      then:      sudo nginx -t && sudo systemctl reload nginx
+# ===========================================================================
+
+# Redirect all plain HTTP to HTTPS.
+server {
+    listen 80;
+    listen [::]:80;
+    server_name migrate.draxk.com;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    http2 on;
+    server_name migrate.draxk.com;
+
+    # --- TLS ---------------------------------------------------------------
+    ssl_certificate     /etc/letsencrypt/live/migrate.draxk.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/migrate.draxk.com/privkey.pem;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers off;
+    ssl_session_cache   shared:SSL:10m;
+    ssl_session_timeout 1d;
+    ssl_stapling on;
+    ssl_stapling_verify on;
+
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    server_tokens off;
+
+    # Agent MSI uploads / PST metadata can be large; raise as needed.
+    client_max_body_size 64m;
+
+    # ---- Optional: restrict to a trusted office/VPN IP range --------------
+    # allow 203.0.113.0/24;
+    # deny  all;
+
+    # =======================================================================
+    # Function 2 — IMAP Migrate (Flask) mounted under /imap/
+    # -----------------------------------------------------------------------
+    # The trailing slash on proxy_pass strips the /imap prefix before the
+    # request reaches Flask (so /imap/dashboard -> /dashboard). We then send
+    # X-Forwarded-Prefix so Flask's ProxyFix(x_prefix=1) makes url_for() emit
+    # /imap/... links again. Keep the trailing slashes exactly as written.
+    # =======================================================================
+    location = /imap { return 301 /imap/; }
+
+    location /imap/ {
+        proxy_pass http://127.0.0.1:8000/;
+        proxy_http_version 1.1;
+        proxy_set_header Host               $host;
+        proxy_set_header X-Real-IP          $remote_addr;
+        proxy_set_header X-Forwarded-For    $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto  $scheme;
+        proxy_set_header X-Forwarded-Host   $host;
+        proxy_set_header X-Forwarded-Port   $server_port;
+        proxy_set_header X-Forwarded-Prefix /imap;
+        proxy_read_timeout 300s;
+    }
+
+    # =======================================================================
+    # Function 1 — DKS Automation Portal (.NET) at the site root /
+    # -----------------------------------------------------------------------
+    # Catch-all: everything not under /imap/ goes to Kestrel. This also serves
+    # the agent API (/api/agent) and the agent MSI download (/agent/...).
+    # =======================================================================
+    location / {
+        proxy_pass http://127.0.0.1:5000;
+        proxy_http_version 1.1;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP        $remote_addr;
+        proxy_set_header X-Forwarded-For  $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Upgrade          $http_upgrade;
+        proxy_set_header Connection       keep-alive;
+        proxy_read_timeout 300s;
+    }
+}

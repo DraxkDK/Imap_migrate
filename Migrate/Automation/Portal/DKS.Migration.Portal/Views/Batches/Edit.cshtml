@@ -1,0 +1,77 @@
+@model DKS.Migration.Portal.Models.MigrationBatch
+@{ ViewData["Title"] = "Edit Batch"; }
+
+<div class="row justify-content-center">
+<div class="col-lg-8">
+<div class="card">
+    <div class="card-header">Edit Batch</div>
+    <div class="card-body">
+        <form asp-action="Edit" method="post">
+            @Html.AntiForgeryToken()
+            <input asp-for="BatchId" type="hidden" />
+            <input asp-for="CreatedAt" type="hidden" />
+            <div class="row g-3">
+                <div class="col-md-8">
+                    <label asp-for="BatchName" class="form-label fw-semibold"></label>
+                    <input asp-for="BatchName" class="form-control" />
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="CustomerId" class="form-label fw-semibold">Customer</label>
+                    <select asp-for="CustomerId" asp-items="ViewBag.Customers" class="form-select"></select>
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="SourceType" class="form-label fw-semibold"></label>
+                    <select asp-for="SourceType" asp-items="Html.GetEnumSelectList<DKS.Migration.Portal.Models.SourceMailType>()" class="form-select"></select>
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="DestinationType" class="form-label fw-semibold"></label>
+                    <select asp-for="DestinationType" asp-items="Html.GetEnumSelectList<DKS.Migration.Portal.Models.DestinationType>()" class="form-select"></select>
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="Mode" class="form-label fw-semibold"></label>
+                    <select asp-for="Mode" asp-items="Html.GetEnumSelectList<DKS.Migration.Portal.Models.AgentMode>()" class="form-select"></select>
+                </div>
+                <div class="col-12">
+                    <label asp-for="BackupPstPath" class="form-label fw-semibold"></label>
+                    <input asp-for="BackupPstPath" class="form-control" />
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="CutoverTime" class="form-label fw-semibold"></label>
+                    <input asp-for="CutoverTime" type="datetime-local" class="form-control" />
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="ImportTargetFolder" class="form-label fw-semibold"></label>
+                    <input asp-for="ImportTargetFolder" class="form-control" />
+                </div>
+                <div class="col-md-4">
+                    <div class="form-check form-switch mt-3">
+                        <input asp-for="RequireUserLogin" class="form-check-input" type="checkbox" />
+                        <label asp-for="RequireUserLogin" class="form-check-label">Require User Login</label>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-check form-switch mt-3">
+                        <input asp-for="CloseOutlookAutomatically" class="form-check-input" type="checkbox" />
+                        <label asp-for="CloseOutlookAutomatically" class="form-check-label">Close Outlook Auto</label>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-check form-switch mt-3">
+                        <input asp-for="RollbackEnabled" class="form-check-input" type="checkbox" />
+                        <label asp-for="RollbackEnabled" class="form-check-label">Rollback Enabled</label>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="Status" class="form-label fw-semibold"></label>
+                    <select asp-for="Status" asp-items="Html.GetEnumSelectList<DKS.Migration.Portal.Models.BatchStatus>()" class="form-select"></select>
+                </div>
+            </div>
+            <div class="d-flex gap-2 mt-4">
+                <button type="submit" class="btn btn-primary">Update</button>
+                <a asp-action="Details" asp-route-id="@Model.BatchId" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+</div>
+</div>

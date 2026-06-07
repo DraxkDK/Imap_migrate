@@ -1,0 +1,14 @@
+C:\Users\ThanhPV\Downloads\Migrate\MDaemonCalendarMigration\obj\Release\net8.0-windows\MDaemonCalendarMigration.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\ThanhPV\Downloads\Migrate\MDaemonCalendarMigration\obj\Release\net8.0-windows\MDaemonCalendarMigration.AssemblyInfoInputs.cache
+C:\Users\ThanhPV\Downloads\Migrate\MDaemonCalendarMigration\obj\Release\net8.0-windows\MDaemonCalendarMigration.AssemblyInfo.cs
+C:\Users\ThanhPV\Downloads\Migrate\MDaemonCalendarMigration\obj\Release\net8.0-windows\MDaemonCalendarMigration.csproj.CoreCompileInputs.cache
+C:\Users\ThanhPV\Downloads\Migrate\MDaemonCalendarMigration\bin\Release\net8.0-windows\MDaemonCalendarMigration.exe
+C:\Users\ThanhPV\Downloads\Migrate\MDaemonCalendarMigration\bin\Release\net8.0-windows\MDaemonCalendarMigration.deps.json
+C:\Users\ThanhPV\Downloads\Migrate\MDaemonCalendarMigration\bin\Release\net8.0-windows\MDaemonCalendarMigration.runtimeconfig.json
+C:\Users\ThanhPV\Downloads\Migrate\MDaemonCalendarMigration\bin\Release\net8.0-windows\MDaemonCalendarMigration.dll
+C:\Users\ThanhPV\Downloads\Migrate\MDaemonCalendarMigration\bin\Release\net8.0-windows\MDaemonCalendarMigration.pdb
+C:\Users\ThanhPV\Downloads\Migrate\MDaemonCalendarMigration\obj\Release\net8.0-windows\MDaemonCalendarMigration.dll
+C:\Users\ThanhPV\Downloads\Migrate\MDaemonCalendarMigration\obj\Release\net8.0-windows\refint\MDaemonCalendarMigration.dll
+C:\Users\ThanhPV\Downloads\Migrate\MDaemonCalendarMigration\obj\Release\net8.0-windows\MDaemonCalendarMigration.pdb
+C:\Users\ThanhPV\Downloads\Migrate\MDaemonCalendarMigration\obj\Release\net8.0-windows\MDaemonCalendarMigration.genruntimeconfig.cache
+C:\Users\ThanhPV\Downloads\Migrate\MDaemonCalendarMigration\obj\Release\net8.0-windows\ref\MDaemonCalendarMigration.dll

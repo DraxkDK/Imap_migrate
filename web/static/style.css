@@ -30,6 +30,7 @@ a:hover { text-decoration: underline; }
 .mainnav { display: flex; gap: 1rem; flex: 1; }
 .mainnav a { color: var(--muted); }
 .mainnav a:hover { color: var(--ink); text-decoration: none; }
+.mainnav .nav-other { margin-left: auto; opacity: 0.85; }
 .userbox { display: flex; align-items: center; gap: 0.8rem; font-size: 0.9rem; }
 .userbox .user { color: var(--muted); }
 
