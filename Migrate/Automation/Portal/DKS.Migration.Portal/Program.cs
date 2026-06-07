@@ -169,7 +169,13 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseStaticFiles();
+
+// Serve the agent MSI (.msi is not in the default static content-type map, so
+// without this the /agent/DKSProfileAgent.msi download returns a 404/error page).
+var msiContentTypes = new Microsoft.AspNetCore.StaticFiles.FileExtensionContentTypeProvider();
+msiContentTypes.Mappings[".msi"] = "application/octet-stream";
+app.UseStaticFiles(new StaticFileOptions { ContentTypeProvider = msiContentTypes });
+
 app.UseRouting();
 
 app.UseAuthentication();
