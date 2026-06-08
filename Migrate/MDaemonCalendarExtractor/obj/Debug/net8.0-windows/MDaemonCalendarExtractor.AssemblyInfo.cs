@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("MDaemonCalendarExtractor")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+9feff5a04590bc479083db07a8ff46c92ac98619")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+62047bad9aed7ac205126ef1c4c9723826ad3b23")]
 [assembly: System.Reflection.AssemblyProductAttribute("MDaemonCalendarExtractor")]
 [assembly: System.Reflection.AssemblyTitleAttribute("MDaemonCalendarExtractor")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

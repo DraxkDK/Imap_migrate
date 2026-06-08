@@ -159,6 +159,9 @@ public class ProfileReconfigurer
         var prfPath = Path.Combine(Path.GetTempPath(), $"dks_add_m365_{Guid.NewGuid():N}.prf");
         try
         {
+            // UseAutoDiscover=Yes lets Outlook find the correct M365 endpoint via autodiscover
+            // and trigger Modern Auth (OAuth2) on first launch instead of using legacy/Basic auth.
+            // ServerName + AuthenticationMethod=16 caused "missing required information" error.
             var prf = "[General]\r\n" +
                       $"ProfileName={profileName}\r\n" +
                       "DefaultProfile=Yes\r\n" +
@@ -170,10 +173,8 @@ public class ProfileReconfigurer
                       "ServiceName=MSEMS\r\n" +
                       "ServiceType=2\r\n" +
                       "DisplayName=Microsoft Exchange\r\n" +
-                      "ServerName=outlook.office365.com\r\n" +
-                      $"MailboxName={mailbox}\r\n" +
-                      "DomainName=\r\n" +
-                      "AuthenticationMethod=16\r\n";
+                      "UseAutoDiscover=Yes\r\n" +
+                      $"MailboxName={mailbox}\r\n";
             File.WriteAllText(prfPath, prf, System.Text.Encoding.ASCII);
             _logger.LogInformation("PRF generated: {Path}", prfPath);
 
