@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("MDaemonCalendarMigration")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+62047bad9aed7ac205126ef1c4c9723826ad3b23")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+4667aef2e213bc31ecc92066cf2cae5aba10d59e")]
 [assembly: System.Reflection.AssemblyProductAttribute("MDaemonCalendarMigration")]
 [assembly: System.Reflection.AssemblyTitleAttribute("MDaemonCalendarMigration")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

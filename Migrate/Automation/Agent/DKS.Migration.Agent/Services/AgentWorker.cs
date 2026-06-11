@@ -15,6 +15,7 @@ public class AgentWorker : BackgroundService
 
     private DeviceState? _state;
     private bool _migrationComplete;
+    private string? _originalProfileName;
 
     public AgentWorker(AgentConfig config, PortalClient portal, OutlookDetector outlookDetector,
         PstExporter pstExporter, ProfileReconfigurer profileReconfigurer,
@@ -45,7 +46,7 @@ public class AgentWorker : BackgroundService
         await RunMigrationStepAsync(ct);
 
         // Main loop: check-in, receive commands, continue migration
-        while (!ct.IsCancellationRequested)
+        while (!ct.IsCancellationRequested && !_migrationComplete)
         {
             try
             {
@@ -265,7 +266,8 @@ public class AgentWorker : BackgroundService
             outlookVersion: outlookVersion,
             currentProfile: defaultProfile,
             oldAccountType: pop3Account.AccountType,
-            oldEmail: pop3Account.EmailAddress);
+            oldEmail: pop3Account.EmailAddress,
+            newMailbox: _state.NewEmail ?? _state.TargetMailbox);
 
         foreach (var pst in _state.PstFiles)
         {
@@ -351,6 +353,10 @@ public class AgentWorker : BackgroundService
         var backupPath = Path.Combine(_state.BackupPstPath ?? LocalBackupPath, "ProfileBackup");
         var currentProfile = _outlookDetector.GetDefaultProfile();
 
+        // Lưu lại để rollback về đúng profile gốc
+        if (!string.IsNullOrEmpty(currentProfile))
+            _originalProfileName = currentProfile;
+
         // Backup profile hiện tại
         if (!string.IsNullOrEmpty(currentProfile))
         {
@@ -415,7 +421,16 @@ public class AgentWorker : BackgroundService
 
         if (!string.IsNullOrEmpty(targetMailbox))
         {
-            // Tạo profile mới "Microsoft 365" bằng PRF — clean, không đụng profile cũ
+            // Đảm bảo Outlook đã đóng trước khi /importprf — tránh race condition
+            // nếu có profile broken từ lần chạy trước, Outlook có thể mở profile đó
+            // trước khi PRF kịp overwrite → lỗi "missing required information"
+            if (_outlookDetector.IsOutlookRunning())
+            {
+                await Log(_state.DeviceId, "ReconfigProfile", "Info", "Closing Outlook before PRF import...");
+                _outlookDetector.CloseOutlook();
+                await Task.Delay(3000, ct);
+            }
+
             var newProfileName = "Microsoft 365";
             var ok = _profileReconfigurer.AddM365AccountViaPrf(newProfileName, targetMailbox, overwrite: true);
             if (ok)
@@ -501,10 +516,10 @@ public class AgentWorker : BackgroundService
                 await StepScanOutlookAsync(ct);
                 break;
             case "Rollback":
-                var oldProfile = _outlookDetector.GetDefaultProfile();
-                _profileReconfigurer.RollbackToProfile(oldProfile);
+                var profileToRestore = _originalProfileName ?? _outlookDetector.GetDefaultProfile();
+                _profileReconfigurer.RollbackToProfile(profileToRestore);
                 _state.CurrentStep = "NeedManualAction";
-                await Log(_state.DeviceId, "Rollback", "Warning", "Rollback executed from portal command.");
+                await Log(_state.DeviceId, "Rollback", "Warning", $"Rollback executed — restored profile '{profileToRestore}'.");
                 break;
             case "Uninstall":
                 await UninstallSelfAsync();

@@ -185,6 +185,13 @@ public class ProfileReconfigurer
                 UseShellExecute = true
             });
             _logger.LogInformation("Launched Outlook /importprf for mailbox {Mailbox}", mailbox);
+
+            // Outlook reads the PRF during startup — clean up after a short delay
+            _ = Task.Delay(TimeSpan.FromSeconds(30)).ContinueWith(_ =>
+            {
+                try { if (File.Exists(prfPath)) File.Delete(prfPath); } catch { }
+            });
+
             return true;
         }
         catch (Exception ex)

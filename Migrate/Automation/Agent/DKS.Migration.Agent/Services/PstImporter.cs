@@ -27,7 +27,6 @@ public class PstImporter
     {
         try
         {
-            // Use COM late-binding to avoid requiring Interop assembly at compile time
             var outlookType = Type.GetTypeFromProgID("Outlook.Application");
             if (outlookType == null)
             {
@@ -35,14 +34,12 @@ public class PstImporter
                 return false;
             }
 
+            // On Windows, CreateInstance reuses the running Outlook process via COM ROT
             dynamic outlook = Activator.CreateInstance(outlookType)!;
             dynamic ns = outlook.GetNamespace("MAPI");
-
-            // AddStore attaches the PST
             ns.AddStore(pstPath);
             _logger.LogInformation("PST attached: {Path}", pstPath);
 
-            // Cleanup
             System.Runtime.InteropServices.Marshal.ReleaseComObject(ns);
             System.Runtime.InteropServices.Marshal.ReleaseComObject(outlook);
             return true;
@@ -67,52 +64,52 @@ public class PstImporter
 
             dynamic outlook = Activator.CreateInstance(outlookType)!;
             dynamic ns = outlook.GetNamespace("MAPI");
-
-            // First attach the PST
             ns.AddStore(pstPath);
 
-            // Find the store we just added
+            // Find the store we just added — release each store object not selected to avoid COM leak
             dynamic stores = ns.Stores;
             dynamic? pstStore = null;
-            for (int i = 1; i <= stores.Count; i++)
+            int storeCount = stores.Count;
+            for (int i = 1; i <= storeCount; i++)
             {
                 dynamic s = stores[i];
                 if (s.FilePath?.ToString()?.Equals(pstPath, StringComparison.OrdinalIgnoreCase) == true)
-                {
                     pstStore = s;
-                    break;
-                }
+                else
+                    System.Runtime.InteropServices.Marshal.ReleaseComObject(s);
             }
+            System.Runtime.InteropServices.Marshal.ReleaseComObject(stores);
 
             if (pstStore == null)
             {
                 _logger.LogWarning("PST store not found after AddStore");
+                System.Runtime.InteropServices.Marshal.ReleaseComObject(ns);
+                System.Runtime.InteropServices.Marshal.ReleaseComObject(outlook);
                 return false;
             }
 
-            // Find or create target folder in default store
             dynamic defaultStore = ns.DefaultStore;
-            dynamic inbox = ns.GetDefaultFolder(6); // olFolderInbox = 6
             dynamic targetFolder;
 
             if (!string.IsNullOrEmpty(targetFolderName))
             {
-                // Create the import folder if it doesn't exist
                 dynamic rootFolder = defaultStore.GetRootFolder();
                 targetFolder = GetOrCreateFolder(rootFolder, targetFolderName.TrimStart('/'));
+                System.Runtime.InteropServices.Marshal.ReleaseComObject(rootFolder);
             }
             else
             {
-                targetFolder = inbox;
+                targetFolder = ns.GetDefaultFolder(6); // olFolderInbox
             }
 
-            // Copy items from PST root
             dynamic pstRoot = pstStore.GetRootFolder();
             CopyFolderContents(pstRoot, targetFolder);
-
-            // Remove PST after import
             ns.RemoveStore(pstRoot);
 
+            System.Runtime.InteropServices.Marshal.ReleaseComObject(pstRoot);
+            System.Runtime.InteropServices.Marshal.ReleaseComObject(targetFolder);
+            System.Runtime.InteropServices.Marshal.ReleaseComObject(defaultStore);
+            System.Runtime.InteropServices.Marshal.ReleaseComObject(pstStore);
             System.Runtime.InteropServices.Marshal.ReleaseComObject(ns);
             System.Runtime.InteropServices.Marshal.ReleaseComObject(outlook);
 

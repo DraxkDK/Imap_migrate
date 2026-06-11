@@ -54,6 +54,7 @@ public class PstExporter
         {
             _logger.LogError(ex, "Failed to export PST {Path}", sourcePath);
             info.IsExported = false;
+            try { if (File.Exists(destPath)) File.Delete(destPath); } catch { }
         }
 
         return info;
