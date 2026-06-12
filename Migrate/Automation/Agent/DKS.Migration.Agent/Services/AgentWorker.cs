@@ -371,37 +371,6 @@ public class AgentWorker : BackgroundService
             await Log(_state.DeviceId, "ReconfigProfile", "Info", $"Profile '{currentProfile}' backed up to {backupPath}");
         }
 
-        // Tìm profile Exchange/M365 đang có sẵn
-        var exchangeProfile = _profileReconfigurer.FindExchangeProfile();
-
-        // Xác định email POP3 cần disable
-        var pop3Email = _state.OldEmail
-                     ?? _state.Profiles.SelectMany(p => p.Accounts)
-                                       .FirstOrDefault(a => a.IsPop3)?.EmailAddress;
-
-        if (!string.IsNullOrEmpty(exchangeProfile))
-        {
-            // Có Exchange profile → disable POP3 account khỏi profile đó, set làm default
-            if (!string.IsNullOrEmpty(pop3Email))
-            {
-                var removed = _profileReconfigurer.RemovePop3Account(exchangeProfile, pop3Email);
-                await Log(_state.DeviceId, "ReconfigProfile", "Info",
-                    removed
-                        ? $"POP3 account '{pop3Email}' disabled from profile '{exchangeProfile}'"
-                        : $"Could not disable POP3 account — may need manual removal");
-            }
-
-            _profileReconfigurer.SetDefaultProfile(exchangeProfile);
-            await Log(_state.DeviceId, "ReconfigProfile", "Info",
-                $"Exchange/M365 profile '{exchangeProfile}' set as default.");
-        }
-        else
-        {
-            // Không có Exchange profile → user cần tự tạo tài khoản M365
-            await Log(_state.DeviceId, "ReconfigProfile", "Warning",
-                "No Exchange/M365 profile found. User must add M365 account manually in Outlook.");
-        }
-
         var targetMailbox = ResolveM365MailboxUpn();
 
         if (string.IsNullOrEmpty(targetMailbox))
@@ -415,7 +384,11 @@ public class AgentWorker : BackgroundService
             return;
         }
 
-// Đóng Outlook trước khi tạo profile mới
+        // POP3 → M365: luôn tạo profile mới sạch. Profile POP3 cũ giữ nguyên làm
+        // rollback (_originalProfileName). Không đụng FindExchangeProfile vì profile
+        // "Microsoft 365" broken sót lại từ lần chạy trước sẽ bị CreateEmptyProfile xóa.
+
+        // Đóng Outlook trước khi tạo profile mới
         if (_outlookDetector.IsOutlookRunning())
         {
             await Log(_state.DeviceId, "ReconfigProfile", "Info", "Closing Outlook...");
