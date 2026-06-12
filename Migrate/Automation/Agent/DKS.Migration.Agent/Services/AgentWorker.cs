@@ -408,47 +408,25 @@ public class AgentWorker : BackgroundService
             return;
         }
 
-        if (!_config.UsePrfForM365Profile)
+// Đóng Outlook trước khi tạo profile mới
+        if (_outlookDetector.IsOutlookRunning())
         {
-            await Log(_state.DeviceId, "ReconfigProfile", "Info",
-                $"Skipping PRF-based M365 profile creation for '{targetMailbox}'. Launching Outlook for interactive Modern Auth sign-in.");
-            _profileReconfigurer.LaunchOutlookForSignIn();
-            _state.CurrentStep = "NeedManualAction";
-            await _portal.CheckInAsync(_state.DeviceId, "NeedManualAction",
-                errorMessage: $"Sign in to Outlook with {targetMailbox}, verify the mailbox opens correctly, then run Import PST from the portal.");
-            return;
+            await Log(_state.DeviceId, "ReconfigProfile", "Info", "Closing Outlook...");
+            _outlookDetector.CloseOutlook();
+            await Task.Delay(3000, ct);
         }
 
-        if (!string.IsNullOrEmpty(targetMailbox))
+        var newProfileName = "Microsoft 365";
+        var ok = _profileReconfigurer.CreateEmptyProfileAndLaunch(newProfileName);
+        if (ok)
         {
-            // Đảm bảo Outlook đã đóng trước khi /importprf — tránh race condition
-            // nếu có profile broken từ lần chạy trước, Outlook có thể mở profile đó
-            // trước khi PRF kịp overwrite → lỗi "missing required information"
-            if (_outlookDetector.IsOutlookRunning())
-            {
-                await Log(_state.DeviceId, "ReconfigProfile", "Info", "Closing Outlook before PRF import...");
-                _outlookDetector.CloseOutlook();
-                await Task.Delay(3000, ct);
-            }
-
-            var newProfileName = "Microsoft 365";
-            var ok = _profileReconfigurer.AddM365AccountViaPrf(newProfileName, targetMailbox, overwrite: true);
-            if (ok)
-            {
-                await Log(_state.DeviceId, "ReconfigProfile", "Info",
-                    $"New profile '{newProfileName}' created for '{targetMailbox}'. Outlook will open — user must sign in with Modern Auth.");
-            }
-            else
-            {
-                await Log(_state.DeviceId, "ReconfigProfile", "Warning",
-                    "PRF import failed — launching Outlook manually for user to set up account.");
-                _profileReconfigurer.LaunchOutlookForSignIn();
-            }
+            await Log(_state.DeviceId, "ReconfigProfile", "Info",
+                $"Empty profile '{newProfileName}' created. Outlook opened — user must add M365 account ({targetMailbox}) via Add Account wizard.");
         }
         else
         {
             await Log(_state.DeviceId, "ReconfigProfile", "Warning",
-                "No target mailbox — add user mapping on portal then retry. Launching Outlook for manual setup.");
+                "Could not create profile — launching Outlook for manual setup.");
             _profileReconfigurer.LaunchOutlookForSignIn();
         }
 

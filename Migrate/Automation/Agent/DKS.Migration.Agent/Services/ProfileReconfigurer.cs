@@ -149,55 +149,49 @@ public class ProfileReconfigurer
         return false;
     }
 
-    // Tạo profile mới (hoặc add vào profile có sẵn) bằng PRF file
-    // overwrite=true → tạo profile mới clean; overwrite=false → add vào profile hiện có
-    public bool AddM365AccountViaPrf(string profileName, string mailbox, bool overwrite = true)
+    // Tạo empty profile (không có Exchange service) rồi launch Outlook.
+    // Outlook thấy profile trống → tự chạy Add Account wizard → user nhập email M365
+    // → autodiscover → Modern Auth. Không dùng PRF vì PRF tạo MSEMS entry thiếu
+    // required binary MAPI values → lỗi "missing required information" ngay khi mở.
+    public bool CreateEmptyProfileAndLaunch(string profileName)
     {
         var outlookPath = FindOutlookExe();
         if (outlookPath == null) { _logger.LogWarning("Outlook.exe not found"); return false; }
 
-        var prfPath = Path.Combine(Path.GetTempPath(), $"dks_add_m365_{Guid.NewGuid():N}.prf");
         try
         {
-            // UseAutoDiscover=Yes lets Outlook find the correct M365 endpoint via autodiscover
-            // and trigger Modern Auth (OAuth2) on first launch instead of using legacy/Basic auth.
-            // ServerName + AuthenticationMethod=16 caused "missing required information" error.
-            var prf = "[General]\r\n" +
-                      $"ProfileName={profileName}\r\n" +
-                      "DefaultProfile=Yes\r\n" +
-                      $"OverwriteProfile={(overwrite ? "Yes" : "No")}\r\n\r\n" +
-                      "[Service List]\r\n" +
-                      "Service1=Microsoft Exchange\r\n\r\n" +
-                      "[Microsoft Exchange]\r\n" +
-                      "CLSID={ED475410-B0D6-11D2-8C3B-00104B2A6676}\r\n" +
-                      "ServiceName=MSEMS\r\n" +
-                      "ServiceType=2\r\n" +
-                      "DisplayName=Microsoft Exchange\r\n" +
-                      "UseAutoDiscover=Yes\r\n" +
-                      $"MailboxName={mailbox}\r\n";
-            File.WriteAllText(prfPath, prf, System.Text.Encoding.ASCII);
-            _logger.LogInformation("PRF generated: {Path}", prfPath);
-
-            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            foreach (var regPath in ProfilesPaths)
             {
-                FileName = outlookPath,
-                Arguments = $@"/importprf ""{prfPath}""",
-                UseShellExecute = true
-            });
-            _logger.LogInformation("Launched Outlook /importprf for mailbox {Mailbox}", mailbox);
+                using var profilesKey = Registry.CurrentUser.OpenSubKey(regPath, writable: true);
+                if (profilesKey == null) continue;
 
-            // Outlook reads the PRF during startup — clean up after a short delay
-            _ = Task.Delay(TimeSpan.FromSeconds(30)).ContinueWith(_ =>
-            {
-                try { if (File.Exists(prfPath)) File.Delete(prfPath); } catch { }
-            });
+                // Xóa profile cũ bị broken (nếu có từ lần chạy trước)
+                try { profilesKey.DeleteSubKeyTree(profileName, throwOnMissingSubKey: false); } catch { }
 
-            return true;
+                // Tạo profile container trống — không có Exchange service nào
+                using (profilesKey.CreateSubKey(profileName)) { }
+
+                // Set làm default
+                profilesKey.SetValue("DefaultProfile", profileName, RegistryValueKind.String);
+                _logger.LogInformation("Empty profile '{Name}' created and set as default", profileName);
+
+                // Launch Outlook với profile mới — sẽ hiện Add Account wizard
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = outlookPath,
+                    Arguments = $@"/profile ""{profileName}""",
+                    UseShellExecute = true
+                });
+                _logger.LogInformation("Launched Outlook with empty profile '{Name}' — user will see Add Account wizard", profileName);
+                return true;
+            }
+
+            _logger.LogWarning("Could not find Outlook profiles registry path");
+            return false;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "AddM365AccountViaPrf failed");
-            if (File.Exists(prfPath)) File.Delete(prfPath);
+            _logger.LogError(ex, "CreateEmptyProfileAndLaunch failed");
             return false;
         }
     }
