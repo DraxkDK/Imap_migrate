@@ -93,13 +93,17 @@ public class PstImporter
 
             if (!string.IsNullOrEmpty(targetFolderName))
             {
+                // Import vào 1 folder cụ thể dưới mailbox
                 dynamic rootFolder = defaultStore.GetRootFolder();
                 targetFolder = GetOrCreateFolder(rootFolder, targetFolderName.TrimStart('/'));
                 System.Runtime.InteropServices.Marshal.ReleaseComObject(rootFolder);
             }
             else
             {
-                targetFolder = ns.GetDefaultFolder(6); // olFolderInbox
+                // Trống → import vào ROOT mailbox. CopyFolderContents sẽ merge các folder
+                // con của PST (Inbox, Sent Items...) vào folder cùng tên trong mailbox M365
+                // (GetOrCreateFolder tìm theo tên trước → merge, không tạo trùng) → sync lên cloud.
+                targetFolder = defaultStore.GetRootFolder();
             }
 
             dynamic pstRoot = pstStore.GetRootFolder();

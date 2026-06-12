@@ -457,18 +457,43 @@ public class AgentWorker : BackgroundService
 
         var newProfileName = _outlookDetector.GetDefaultProfile();
 
-        foreach (var pst in _state.PstFiles.Where(p => p.IsExported))
+        // State in-memory có thể rỗng (agent restart / trigger step riêng lẻ qua portal).
+        // Quét lại PST đã export từ thư mục backup trên disk để không import vào khoảng không.
+        var exportedPsts = _state.PstFiles.Where(p => p.IsExported).ToList();
+        if (!exportedPsts.Any())
+        {
+            var dir = Path.Combine(_state.BackupPstPath ?? LocalBackupPath,
+                Environment.MachineName, Environment.UserName);
+            if (Directory.Exists(dir))
+            {
+                exportedPsts = Directory.GetFiles(dir, "*.pst", SearchOption.TopDirectoryOnly)
+                    .Select(f => new PstFileInfo { SourcePath = f, BackupPath = f, IsExported = true })
+                    .ToList();
+                await Log(_state.DeviceId, "ImportPST", "Info",
+                    $"State empty — recovered {exportedPsts.Count} exported PST(s) from backup: {dir}");
+            }
+        }
+
+        if (!exportedPsts.Any())
+        {
+            await Log(_state.DeviceId, "ImportPST", "Warning",
+                "No exported PST found to import. Run Export PST first.");
+            _state.CurrentStep = "NeedManualAction";
+            await _portal.CheckInAsync(_state.DeviceId, "NeedManualAction",
+                errorMessage: "No exported PST found on disk. Run Export PST before Import.");
+            return;
+        }
+
+        foreach (var pst in exportedPsts)
         {
             ct.ThrowIfCancellationRequested();
             var pstPath = pst.BackupPath ?? pst.SourcePath;
 
             await Log(_state.DeviceId, "ImportPST", "Info", $"Importing {Path.GetFileName(pstPath)}...");
 
-            bool ok;
-            if (!string.IsNullOrEmpty(_state.ImportTargetFolder))
-                ok = await _pstImporter.ImportPstIntoFolderAsync(pstPath, newProfileName, _state.ImportTargetFolder, ct);
-            else
-                ok = await _pstImporter.AttachPstAsync(pstPath, newProfileName, ct);
+            // Luôn copy mail VÀO mailbox M365 (merge theo folder name) → sync lên cloud.
+            // ImportTargetFolder trống → import vào root mailbox, merge Inbox/Sent... theo tên.
+            var ok = await _pstImporter.ImportPstIntoFolderAsync(pstPath, newProfileName, _state.ImportTargetFolder, ct);
 
             pst.IsImported = ok;
             await _portal.ReportPstAsync(_state.DeviceId, pst, "Exported", ok ? "Imported" : "Failed");
