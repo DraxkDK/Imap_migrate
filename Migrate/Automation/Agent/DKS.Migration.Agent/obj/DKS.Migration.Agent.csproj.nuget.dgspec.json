@@ -47,6 +47,12 @@
               "target": "Package",
               "version": "[8.0.1, )"
             },
+            "Microsoft.NET.ILLink.Tasks": {
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[8.0.27, )",
+              "autoReferenced": true
+            },
             "Microsoft.Win32.Registry": {
               "target": "Package",
               "version": "[5.0.0, )"
@@ -67,20 +73,6 @@
           ],
           "assetTargetFallback": true,
           "warn": true,
-          "downloadDependencies": [
-            {
-              "name": "Microsoft.AspNetCore.App.Runtime.win-x64",
-              "version": "[8.0.27, 8.0.27]"
-            },
-            {
-              "name": "Microsoft.NETCore.App.Runtime.win-x64",
-              "version": "[8.0.27, 8.0.27]"
-            },
-            {
-              "name": "Microsoft.WindowsDesktop.App.Runtime.win-x64",
-              "version": "[8.0.27, 8.0.27]"
-            }
-          ],
           "frameworkReferences": {
             "Microsoft.NETCore.App": {
               "privateAssets": "all"
