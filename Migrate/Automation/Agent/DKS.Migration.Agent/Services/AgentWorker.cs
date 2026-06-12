@@ -16,6 +16,9 @@ public class AgentWorker : BackgroundService
     private DeviceState? _state;
     private bool _migrationComplete;
     private string? _originalProfileName;
+    private string? _newProfileName;
+    private DateTime? _signInWaitStart;
+    private static readonly TimeSpan SignInTimeout = TimeSpan.FromHours(2);
 
     public AgentWorker(AgentConfig config, PortalClient portal, OutlookDetector outlookDetector,
         PstExporter pstExporter, ProfileReconfigurer profileReconfigurer,
@@ -52,6 +55,10 @@ public class AgentWorker : BackgroundService
             {
                 if (_state != null)
                 {
+                    // Đang chờ user sign in → poll detect session ready rồi auto-import
+                    if (_state.CurrentStep == "WaitingForSignIn")
+                        await PollSignInAndImportAsync(ct);
+
                     var command = await _portal.CheckInAsync(_state.DeviceId, _state.CurrentStep);
                     if (!string.IsNullOrEmpty(command))
                         await ExecuteCommandAsync(command, ct);
@@ -417,21 +424,56 @@ public class AgentWorker : BackgroundService
         }
 
         var newProfileName = "Microsoft 365";
+        _newProfileName = newProfileName;
         var ok = _profileReconfigurer.CreateEmptyProfileAndLaunch(newProfileName);
         if (ok)
         {
             await Log(_state.DeviceId, "ReconfigProfile", "Info",
-                $"Empty profile '{newProfileName}' created. Outlook opened — user must add M365 account ({targetMailbox}) via Add Account wizard.");
+                $"Empty profile '{newProfileName}' created. Outlook opened — user signs in once with {targetMailbox}. Agent will auto-import after sign-in.");
+            // Chờ user sign in trên popup → agent tự detect session ready rồi auto-import
+            _state.CurrentStep = "WaitingForSignIn";
+            _signInWaitStart = DateTime.UtcNow;
+            await _portal.CheckInAsync(_state.DeviceId, "WaitingForSignIn",
+                errorMessage: $"User: sign in to Outlook with {targetMailbox} on the popup, then wait. Import runs automatically.");
         }
         else
         {
             await Log(_state.DeviceId, "ReconfigProfile", "Warning",
                 "Could not create profile — launching Outlook for manual setup.");
             _profileReconfigurer.LaunchOutlookForSignIn();
+            _state.CurrentStep = "ProfileReconfigured";
+            await _portal.CheckInAsync(_state.DeviceId, "ProfileReconfigured");
+        }
+    }
+
+    // Poll xem user đã sign in xong chưa (Exchange session ready trong profile mới).
+    // Khi ready → agent ride trên session đã auth đó để import, không cần password.
+    private async Task PollSignInAndImportAsync(CancellationToken ct)
+    {
+        var profileName = _newProfileName ?? "Microsoft 365";
+
+        if (!_profileReconfigurer.IsExchangeAccountReady(profileName))
+        {
+            // Timeout: user không sign in trong giới hạn → chuyển manual
+            if (_signInWaitStart.HasValue && DateTime.UtcNow - _signInWaitStart.Value > SignInTimeout)
+            {
+                await Log(_state!.DeviceId, "WaitSignIn", "Warning",
+                    $"User did not sign in within {SignInTimeout.TotalMinutes:0} min. Marking NeedManualAction.");
+                _state.CurrentStep = "NeedManualAction";
+                await _portal.CheckInAsync(_state.DeviceId, "NeedManualAction",
+                    errorMessage: "Sign-in timeout. User must sign in to Outlook, then trigger Import PST from portal.");
+            }
+            else
+            {
+                await Log(_state!.DeviceId, "WaitSignIn", "Info", "Waiting for user to sign in to Outlook...");
+            }
+            return;
         }
 
+        // Session ready → tự động import
+        await Log(_state!.DeviceId, "WaitSignIn", "Info", "Sign-in detected — Exchange session ready. Starting auto-import.");
         _state.CurrentStep = "ProfileReconfigured";
-        await _portal.CheckInAsync(_state.DeviceId, "ProfileReconfigured");
+        await StepImportPstAsync(ct);
     }
 
     private async Task StepImportPstAsync(CancellationToken ct)

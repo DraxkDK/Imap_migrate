@@ -83,6 +83,35 @@ public class ProfileReconfigurer
         return null;
     }
 
+    // Detect user đã sign in xong chưa: profile đã có Exchange (MSEMS) account
+    // với mailbox được provision. Sau khi user nhập email + password trên popup,
+    // Outlook ghi MSEMS service entry vào profile này → session đã established.
+    public bool IsExchangeAccountReady(string profileName)
+    {
+        foreach (var regPath in ProfilesPaths)
+        {
+            using var profileKey = Registry.CurrentUser.OpenSubKey($@"{regPath}\{profileName}");
+            if (profileKey == null) continue;
+
+            foreach (var clsid in profileKey.GetSubKeyNames())
+            {
+                using var cKey = profileKey.OpenSubKey(clsid);
+                if (cKey == null) continue;
+                foreach (var acct in cKey.GetSubKeyNames())
+                {
+                    using var aKey = cKey.OpenSubKey(acct);
+                    var svc = aKey?.GetValue("Service Name")?.ToString();
+                    if (svc == "MSEMS")
+                    {
+                        _logger.LogInformation("Exchange account ready in profile '{Profile}'", profileName);
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
     public bool SetDefaultProfile(string profileName)
     {
         var changed = false;
