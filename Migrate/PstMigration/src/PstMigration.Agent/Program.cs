@@ -1,5 +1,6 @@
 using PstMigration.Agent;
 using PstMigration.Agent.Services;
+using PstMigration.PstParser;
 using Serilog;
 
 var builder = Host.CreateApplicationBuilder(args);
@@ -17,6 +18,8 @@ builder.Services.AddSerilog(cfg => cfg
 var portalUrl = builder.Configuration["Portal:Url"] ?? "https://localhost:5001";
 builder.Services.AddHttpClient<PortalClient>(c => c.BaseAddress = new Uri(portalUrl));
 
+builder.Services.AddXstPstParser();
+builder.Services.AddSingleton<PstScanner>();
 builder.Services.AddHostedService<AgentWorker>();
 
 var host = builder.Build();

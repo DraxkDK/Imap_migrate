@@ -10,15 +10,17 @@ namespace PstMigration.Agent;
 public sealed class AgentWorker : BackgroundService
 {
     private readonly PortalClient _portal;
+    private readonly PstScanner _scanner;
     private readonly IConfiguration _config;
     private readonly ILogger<AgentWorker> _logger;
 
     private Guid _agentId;
     private int _heartbeatSeconds = 30;
 
-    public AgentWorker(PortalClient portal, IConfiguration config, ILogger<AgentWorker> logger)
+    public AgentWorker(PortalClient portal, PstScanner scanner, IConfiguration config, ILogger<AgentWorker> logger)
     {
         _portal = portal;
+        _scanner = scanner;
         _config = config;
         _logger = logger;
     }
@@ -56,6 +58,25 @@ public sealed class AgentWorker : BackgroundService
                 _logger.LogError(ex, "Registration failed; retrying in 30s.");
                 await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
             }
+        }
+
+        // One-time PST discovery scan (metadata reported to portal; PST stays local).
+        try
+        {
+            var cfg = await _portal.GetConfigurationAsync(stoppingToken);
+            var folders = cfg?.DefaultPstFolders
+                ?? _config.GetSection("Agent:PstFolders").Get<string[]>()
+                ?? Array.Empty<string>();
+            if (folders.Length > 0)
+            {
+                _logger.LogInformation("Scanning {Count} PST folder(s)...", folders.Length);
+                await _scanner.ScanAsync(_agentId, folders, stoppingToken);
+            }
+        }
+        catch (OperationCanceledException) { return; }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "PST scan failed.");
         }
 
         // Heartbeat loop.

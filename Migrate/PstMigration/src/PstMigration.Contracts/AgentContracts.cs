@@ -78,6 +78,13 @@ public sealed record ErrorReportDto(
 public sealed record ErrorReportRequest(Guid JobId, Guid? MailboxId, IReadOnlyList<ErrorReportDto> Errors);
 
 // Agent -> Portal: PST discovery inventory (metadata only).
+public sealed record PstFolderDto(
+    string SourceFolderId,
+    string SourceFolderPath,
+    string DisplayName,
+    string? ParentSourceFolderId,
+    int ItemCount);
+
 public sealed record PstInventoryRequest(
     Guid AgentId,
     string Path,
@@ -88,4 +95,5 @@ public sealed record PstInventoryRequest(
     int FolderCount,
     int MailCount,
     int ContactCount,
-    int CalendarCount);
+    int CalendarCount,
+    IReadOnlyList<PstFolderDto> Folders);

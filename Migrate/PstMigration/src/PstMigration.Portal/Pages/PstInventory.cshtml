@@ -1,0 +1,37 @@
+@page
+@model PstInventoryModel
+@{
+    ViewData["Title"] = "PST Inventory";
+}
+
+<h1 class="h3 mb-3">PST Inventory</h1>
+<p class="text-muted small">Metadata reported by agents. PST content stays on the endpoint.</p>
+
+<table class="table table-sm table-hover">
+    <thead>
+        <tr>
+            <th>Path</th><th>Agent</th><th class="text-end">Size</th>
+            <th class="text-end">Folders</th><th class="text-end">Mail</th>
+            <th>SHA-256</th><th>Scanned</th><th></th>
+        </tr>
+    </thead>
+    <tbody>
+    @foreach (var f in Model.Files)
+    {
+        <tr>
+            <td class="small">@f.Path</td>
+            <td class="small">@f.Agent?.MachineName</td>
+            <td class="text-end small">@($"{f.SizeBytes / 1024.0 / 1024:F1} MB")</td>
+            <td class="text-end">@f.FolderCount</td>
+            <td class="text-end">@f.MailCount</td>
+            <td class="small text-muted"><span title="@f.Sha256">@(f.Sha256.Length >= 12 ? f.Sha256[..12] : f.Sha256)…</span></td>
+            <td class="small">@f.LastScannedAt?.ToString("yyyy-MM-dd HH:mm")</td>
+            <td>@if (f.IsCorrupted) { <span class="badge bg-danger">corrupted</span> }</td>
+        </tr>
+    }
+    @if (Model.Files.Count == 0)
+    {
+        <tr><td colspan="8" class="text-center text-muted py-4">No PST files discovered yet. Run an agent scan.</td></tr>
+    }
+    </tbody>
+</table>

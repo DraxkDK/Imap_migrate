@@ -1,0 +1,50 @@
+@page
+@model MappingsModel
+@{
+    ViewData["Title"] = "Mailbox Mappings";
+}
+
+<h1 class="h3 mb-3">PST → Mailbox Mappings</h1>
+
+@if (Model.Message is not null)
+{
+    <div class="alert alert-info py-2">@Model.Message</div>
+}
+
+<div class="card mb-4">
+    <div class="card-header">Import mappings (CSV)</div>
+    <div class="card-body">
+        <p class="small text-muted mb-2">
+            Columns: <code>PstPath,TargetMailbox,DisplayName,EmailMode,CalendarMode,ContactMode</code>.
+            The PST must already appear in the inventory.
+            EmailMode: Disabled | MetadataOnly | GraphBestEffort. CalendarMode: Disabled | Safe | Advanced.
+        </p>
+        <form method="post" asp-page-handler="ImportCsv" enctype="multipart/form-data" class="d-flex gap-2">
+            <input type="file" name="csv" accept=".csv" class="form-control form-control-sm" required />
+            <button class="btn btn-sm btn-primary">Import</button>
+        </form>
+    </div>
+</div>
+
+<table class="table table-sm table-hover">
+    <thead>
+        <tr><th>Target mailbox</th><th>PST</th><th>Email</th><th>Calendar</th><th>Contacts</th><th>Root folder</th></tr>
+    </thead>
+    <tbody>
+    @foreach (var m in Model.Mappings)
+    {
+        <tr>
+            <td>@m.TargetMailbox</td>
+            <td class="small text-muted">@m.PstFile?.Path</td>
+            <td><span class="badge bg-secondary">@m.EmailMode</span></td>
+            <td><span class="badge bg-secondary">@m.CalendarMode</span></td>
+            <td><span class="badge bg-secondary">@m.ContactMode</span></td>
+            <td class="small">@m.RootFolderName</td>
+        </tr>
+    }
+    @if (Model.Mappings.Count == 0)
+    {
+        <tr><td colspan="6" class="text-center text-muted py-4">No mappings yet. Import a CSV above.</td></tr>
+    }
+    </tbody>
+</table>

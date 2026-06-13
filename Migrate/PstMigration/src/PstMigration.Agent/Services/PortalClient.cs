@@ -32,4 +32,10 @@ public sealed class PortalClient
         if (!resp.IsSuccessStatusCode) return null;
         return await resp.Content.ReadFromJsonAsync<GraphTokenResponse>(cancellationToken: ct);
     }
+
+    public async Task<bool> ReportInventoryAsync(PstInventoryRequest request, CancellationToken ct)
+    {
+        var resp = await _http.PostAsJsonAsync("api/agents/pst-inventory", request, ct);
+        return resp.IsSuccessStatusCode;
+    }
 }

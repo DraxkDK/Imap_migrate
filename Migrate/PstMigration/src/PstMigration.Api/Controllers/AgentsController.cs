@@ -100,4 +100,51 @@ public class AgentsController : ControllerBase
         var token = await _tokenBroker.AcquireTokenAsync(agent.TenantId, ct);
         return Ok(new GraphTokenResponse(token.AccessToken, token.ExpiresOn, token.Resource));
     }
+
+    /// <summary>Receives PST discovery inventory (metadata only — never PST content).</summary>
+    [HttpPost("pst-inventory")]
+    public async Task<IActionResult> PstInventory([FromBody] PstInventoryRequest req, CancellationToken ct)
+    {
+        var agent = await _db.Agents.FirstOrDefaultAsync(a => a.Id == req.AgentId, ct);
+        if (agent is null) return NotFound();
+
+        var pst = await _db.PstFiles
+            .Include(p => p.Folders)
+            .FirstOrDefaultAsync(p => p.AgentId == req.AgentId && p.Sha256 == req.Sha256, ct);
+
+        if (pst is null)
+        {
+            pst = new PstFile { AgentId = req.AgentId, Path = req.Path, Sha256 = req.Sha256 };
+            _db.PstFiles.Add(pst);
+        }
+
+        pst.Path = req.Path;
+        pst.SizeBytes = req.SizeBytes;
+        pst.IsUnicode = req.IsUnicode;
+        pst.IsCorrupted = req.IsCorrupted;
+        pst.FolderCount = req.FolderCount;
+        pst.MailCount = req.MailCount;
+        pst.ContactCount = req.ContactCount;
+        pst.CalendarCount = req.CalendarCount;
+        pst.LastScannedAt = DateTimeOffset.UtcNow;
+
+        // Replace the folder inventory snapshot.
+        if (pst.Folders.Count > 0)
+            _db.PstFolders.RemoveRange(pst.Folders);
+        foreach (var f in req.Folders)
+        {
+            pst.Folders.Add(new PstFolder
+            {
+                SourceFolderId = f.SourceFolderId,
+                SourceFolderPath = f.SourceFolderPath,
+                DisplayName = f.DisplayName,
+                ParentSourceFolderId = f.ParentSourceFolderId,
+                ItemCount = f.ItemCount,
+            });
+        }
+
+        await _db.SaveChangesAsync(ct);
+        _logger.LogInformation("PST inventory stored: {Path} ({Folders} folders, {Mail} mail)", req.Path, req.FolderCount, req.MailCount);
+        return Ok(new { pstFileId = pst.Id });
+    }
 }
