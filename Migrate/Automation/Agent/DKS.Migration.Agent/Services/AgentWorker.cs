@@ -610,10 +610,12 @@ public class AgentWorker : BackgroundService
                 });
                 try
                 {
-                    var (imp, fail) = await importer.ImportPstAsync(pst, mailbox, rootFolder, progress, ct);
+                    var (imp, fail, firstErr) = await importer.ImportPstAsync(pst, mailbox, rootFolder, progress, ct);
                     totalImported += imp; totalFailed += fail;
                     await Log(_state.DeviceId, "GraphImport", fail > 0 ? "Warning" : "Info",
                         $"{Path.GetFileName(pst)}: {imp} imported, {fail} failed");
+                    if (fail > 0 && firstErr != null)
+                        await Log(_state.DeviceId, "GraphImport", "Error", $"{name} first failure: {firstErr}");
                 }
                 catch (Exception ex)
                 {

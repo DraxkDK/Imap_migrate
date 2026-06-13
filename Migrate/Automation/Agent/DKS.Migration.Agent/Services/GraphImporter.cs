@@ -31,10 +31,11 @@ public sealed class GraphImporter : IDisposable
         _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
     }
 
-    public async Task<(int Imported, int Failed)> ImportPstAsync(string pstPath, string mailbox, string rootFolderName,
+    public async Task<(int Imported, int Failed, string? FirstError)> ImportPstAsync(string pstPath, string mailbox, string rootFolderName,
         IProgress<ImportProgress>? progress, CancellationToken ct)
     {
         int imported = 0, failed = 0, total = 0;
+        string? firstError = null;
         long bytesSent = 0;
         var sw = System.Diagnostics.Stopwatch.StartNew();
         var lastReport = TimeSpan.Zero;
@@ -57,7 +58,12 @@ public sealed class GraphImporter : IDisposable
             {
                 ct.ThrowIfCancellationRequested();
                 try { bytesSent += await CreateMessageAsync(mailbox, destId, msg, ct); imported++; }
-                catch (Exception ex) { failed++; _logger.LogWarning("Import failed for '{Subject}': {Err}", msg.Subject, ex.Message); }
+                catch (Exception ex)
+                {
+                    failed++;
+                    firstError ??= $"'{msg.Subject}' → {ex.Message}";
+                    _logger.LogWarning("Import failed for '{Subject}': {Err}", msg.Subject, ex.Message);
+                }
 
                 if (progress is not null && sw.Elapsed - lastReport >= TimeSpan.FromSeconds(5))
                 {
@@ -67,7 +73,7 @@ public sealed class GraphImporter : IDisposable
             }
         }
         progress?.Report(new ImportProgress(imported, failed, total, bytesSent, sw.Elapsed));
-        return (imported, failed);
+        return (imported, failed, firstError);
     }
 
     private async Task<string> EnsureFolderAsync(string mailbox, string? parentId, string name, CancellationToken ct)
