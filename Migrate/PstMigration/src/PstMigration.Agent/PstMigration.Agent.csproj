@@ -1,0 +1,29 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>dotnet-PstMigration.Agent-9d529e12-5d2b-4bf1-94df-ae5e54bcf5ff</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.10" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.8" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="8.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.1" />
+    <PackageReference Include="Serilog.Extensions.Hosting" Version="8.0.0" />
+    <PackageReference Include="Serilog.Sinks.Console" Version="5.0.0" />
+    <PackageReference Include="Serilog.Sinks.File" Version="5.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\PstMigration.Application\PstMigration.Application.csproj" />
+    <ProjectReference Include="..\PstMigration.PstParser\PstMigration.PstParser.csproj" />
+    <ProjectReference Include="..\PstMigration.Graph\PstMigration.Graph.csproj" />
+    <ProjectReference Include="..\PstMigration.Contracts\PstMigration.Contracts.csproj" />
+    <ProjectReference Include="..\PstMigration.Domain\PstMigration.Domain.csproj" />
+  </ItemGroup>
+</Project>
+
+

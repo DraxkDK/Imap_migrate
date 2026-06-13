@@ -1,0 +1,43 @@
+@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<h1 class="h3 mb-3">PST → Microsoft 365 Migration</h1>
+
+<div class="alert alert-warning">
+    @PstMigration.Application.FidelityWarnings.EmailModeBanner
+</div>
+
+<div class="row g-3">
+    @{
+        var cards = new (string Label, int Value)[]
+        {
+            ("Tenants", Model.Tenants),
+            ("Agents", Model.Agents),
+            ("Agents online", Model.OnlineAgents),
+            ("PST files", Model.PstFiles),
+            ("Jobs", Model.Jobs),
+            ("Items completed", Model.ItemsCompleted),
+            ("Items failed", Model.ItemsFailed),
+        };
+    }
+    @foreach (var c in cards)
+    {
+        <div class="col-6 col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <div class="display-6">@c.Value</div>
+                    <div class="text-muted small text-uppercase">@c.Label</div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<p class="text-muted small mt-4">
+    Phase 1 foundation. PST content never leaves the endpoint — the portal stores
+    metadata only. Email migration via Microsoft Graph is best-effort, not a
+    full-fidelity Purview PST import.
+</p>
