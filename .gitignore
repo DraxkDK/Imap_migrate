@@ -20,3 +20,15 @@ __pycache__/
 *.pyc
 .venv/
 venv/
+
+# .NET build output / artifacts — never commit (rebuilt from source)
+**/bin/
+**/obj/
+**/publish/
+**/exe-single/
+**/agent-exe/
+*.exe
+*.dll
+*.pdb
+*.msi
+*.wixpdb
