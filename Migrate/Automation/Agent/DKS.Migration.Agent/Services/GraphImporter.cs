@@ -113,6 +113,21 @@ public sealed class GraphImporter : IDisposable
         long bytes = Encoding.UTF8.GetByteCount(html ?? text ?? "")
             + small.Sum(a => (long)a.Size) + large.Sum(a => (long)a.Size);
 
+        // MAPI extended properties Outlook actually reads for its state/date columns. The high-level
+        // receivedDateTime/sentDateTime are overwritten to "now" on create, so we stamp these instead:
+        //   PR_MESSAGE_FLAGS      (Integer  0x0E07) = MSGFLAG_READ/0 without MSGFLAG_UNSENT → a real
+        //                          received message, not a draft ("This message hasn't been sent").
+        //   PR_MESSAGE_DELIVERY_TIME (SystemTime 0x0E06) → the "Received" date column.
+        //   PR_CLIENT_SUBMIT_TIME    (SystemTime 0x0039) → the "Sent" date column.
+        var svep = new List<object>
+        {
+            new { id = "Integer 0x0E07", value = (msg.IsRead ? 1 : 0).ToString() },
+        };
+        if (msg.ReceivedTime is { } rt)
+            svep.Add(new { id = "SystemTime 0x0E06", value = rt.ToUniversalTime().ToString("o") });
+        if (msg.SubmittedTime is { } st)
+            svep.Add(new { id = "SystemTime 0x0039", value = st.ToUniversalTime().ToString("o") });
+
         var body = new Dictionary<string, object?>
         {
             ["subject"] = msg.Subject,
@@ -122,14 +137,7 @@ public sealed class GraphImporter : IDisposable
             ["ccRecipients"] = Recipients(msg.Recipients?.Cc),
             ["sentDateTime"] = msg.SubmittedTime?.ToUniversalTime().ToString("o"),
             ["receivedDateTime"] = msg.ReceivedTime?.ToUniversalTime().ToString("o"),
-            // PR_MESSAGE_FLAGS (0x0E07): a real received message is MSGFLAG_READ (1) WITHOUT
-            // MSGFLAG_UNSENT (8). Default Graph-created messages have UNSENT set → shown as a draft
-            // ("This message hasn't been sent") with today's date. Stamping the flag here makes it a
-            // normal received item that keeps the receivedDateTime we set above.
-            ["singleValueExtendedProperties"] = new[]
-            {
-                new { id = "Integer 0x0E07", value = (msg.IsRead ? 1 : 0).ToString() },
-            },
+            ["singleValueExtendedProperties"] = svep,
         };
         var sender = msg.Recipients?.Sender;
         if (sender is not null && !string.IsNullOrWhiteSpace(sender.Address) && sender.Address.Contains('@'))
