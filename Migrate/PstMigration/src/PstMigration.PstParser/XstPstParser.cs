@@ -84,19 +84,100 @@ public sealed class XstPstParser : IPstParser
         }
     }
 
-    // Contacts/calendar parsing arrives in Phase 3/4; the mock parser covers them for now.
+    // Best-effort via fixed MAPI property ids. Named properties (contact email
+    // addresses, precise appointment recurrence) are a known XstReader limitation —
+    // refine against real PSTs or switch to a commercial parser if needed.
+    private const ushort PidTagMessageClass = 0x001A;
+    private const ushort PidTagSubject = 0x0037;
+    private const ushort PidTagDisplayName = 0x3001;
+    private const ushort PidTagGivenName = 0x3A06;
+    private const ushort PidTagSurname = 0x3A11;
+    private const ushort PidTagMiddleName = 0x3A44;
+    private const ushort PidTagCompanyName = 0x3A16;
+    private const ushort PidTagDepartmentName = 0x3A18;
+    private const ushort PidTagJobTitle = 0x3A17;
+    private const ushort PidTagBusinessTelephone = 0x3A08;
+    private const ushort PidTagMobileTelephone = 0x3A1C;
+    private const ushort PidTagHomeTelephone = 0x3A09;
+    private const ushort PidTagStartDate = 0x0060;
+    private const ushort PidTagEndDate = 0x0061;
+
     public async IAsyncEnumerable<MigrationContactItem> ReadContactsAsync(
         string pstPath, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        await Task.CompletedTask;
-        yield break;
+        using var xst = new XstFile(pstPath);
+        var index = 0;
+        foreach (var (folder, msg) in EnumerateAllMessages(xst))
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!ClassStartsWith(msg, "IPM.Contact")) continue;
+            await Task.Yield();
+            yield return new MigrationContactItem
+            {
+                SourceItemId = $"{folder.Path}|contact|{index++}",
+                DisplayName = Str(msg, PidTagDisplayName) ?? msg.Subject,
+                GivenName = Str(msg, PidTagGivenName),
+                MiddleName = Str(msg, PidTagMiddleName),
+                Surname = Str(msg, PidTagSurname),
+                CompanyName = Str(msg, PidTagCompanyName),
+                Department = Str(msg, PidTagDepartmentName),
+                JobTitle = Str(msg, PidTagJobTitle),
+                BusinessPhone = Str(msg, PidTagBusinessTelephone),
+                MobilePhone = Str(msg, PidTagMobileTelephone),
+                HomePhone = Str(msg, PidTagHomeTelephone),
+                PersonalNotes = msg.Body?.Text,
+                EmailAddresses = Array.Empty<string>(), // named property — not resolved by XstReader
+            };
+        }
     }
 
     public async IAsyncEnumerable<MigrationCalendarItem> ReadCalendarItemsAsync(
         string pstPath, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        await Task.CompletedTask;
-        yield break;
+        using var xst = new XstFile(pstPath);
+        var index = 0;
+        foreach (var (folder, msg) in EnumerateAllMessages(xst))
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!ClassStartsWith(msg, "IPM.Appointment")) continue;
+            await Task.Yield();
+            var start = ToOffset(Dt(msg, PidTagStartDate));
+            yield return new MigrationCalendarItem
+            {
+                SourceItemId = $"{folder.Path}|event|{index++}",
+                Subject = Str(msg, PidTagSubject) ?? msg.Subject,
+                HtmlBody = msg.Body?.Text,
+                Start = start,
+                End = ToOffset(Dt(msg, PidTagEndDate)) ?? start,
+                TimeZone = "UTC",
+                ShowAs = "busy",
+            };
+        }
+    }
+
+    private static IEnumerable<(XstFolder Folder, XstMessage Message)> EnumerateAllMessages(XstFile xst)
+    {
+        foreach (var folder in EnumerateFolders(xst.RootFolder))
+            foreach (var msg in folder.Messages)
+                yield return (folder, msg);
+    }
+
+    private static bool ClassStartsWith(XstMessage msg, string prefix)
+    {
+        var cls = Str(msg, PidTagMessageClass);
+        return cls is not null && cls.StartsWith(prefix, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string? Str(XstMessage msg, ushort propId)
+    {
+        try { return msg.Properties.Get(propId)?.Value as string; }
+        catch { return null; }
+    }
+
+    private static DateTime? Dt(XstMessage msg, ushort propId)
+    {
+        try { return msg.Properties.Get(propId)?.Value as DateTime?; }
+        catch { return null; }
     }
 
     // ---- helpers -----------------------------------------------------------

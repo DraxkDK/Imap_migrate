@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  PST Migration Agent installer (WiX v5). Installs the agent as a Windows Service,
+  writes Portal URL + registration token to HKLM\SOFTWARE\DKS\PstMigrationAgent
+  (read by the agent at startup), and starts the service.
+
+  Silent install:
+    msiexec /i PstMigrationAgent.msi /qn ^
+      PORTAL_URL="https://migration.example.com" ^
+      REGISTRATION_TOKEN="TOKEN"
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package Name="PST Migration Agent"
+           Manufacturer="DKS"
+           Version="1.0.0.0"
+           UpgradeCode="3F6B1A22-7C4E-4D90-9B1A-5E2C7A9D0F11"
+           Scope="perMachine"
+           Compressed="yes">
+
+    <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <Property Id="PORTAL_URL" Value="https://localhost:5001" Secure="yes" />
+    <Property Id="REGISTRATION_TOKEN" Secure="yes" Hidden="yes" />
+    <Property Id="LOGPATH" Value="C:\ProgramData\DKS\PstMigrationAgent\Logs" Secure="yes" />
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="PST Migration Agent" />
+    </StandardDirectory>
+
+    <Feature Id="Main" Title="PST Migration Agent" Level="1">
+      <ComponentRef Id="AgentService" />
+      <ComponentRef Id="SqliteNativeComponent" />
+      <ComponentRef Id="AppSettingsComponent" />
+      <ComponentRef Id="RegistryConfig" />
+    </Feature>
+
+    <!-- Self-contained service host exe + Windows Service install/control. -->
+    <Component Id="AgentService" Directory="INSTALLFOLDER" Guid="*">
+      <File Id="AgentExe" Source="publish\PstMigration.Agent.exe" KeyPath="yes" />
+      <ServiceInstall Id="ServiceInstaller" Type="ownProcess" Vital="yes"
+                      Name="PstMigrationAgent" DisplayName="PST Migration Agent"
+                      Description="Migrates local PST files to Microsoft 365 via Microsoft Graph."
+                      Start="auto" Account="LocalSystem" ErrorControl="normal" />
+      <ServiceControl Id="ServiceControl" Name="PstMigrationAgent"
+                      Start="install" Stop="both" Remove="uninstall" Wait="yes" />
+    </Component>
+
+    <!-- Native SQLite + default config that ship next to the exe. -->
+    <Component Id="SqliteNativeComponent" Directory="INSTALLFOLDER" Guid="*">
+      <File Id="SqliteNative" Source="publish\e_sqlite3.dll" KeyPath="yes" />
+    </Component>
+    <Component Id="AppSettingsComponent" Directory="INSTALLFOLDER" Guid="*">
+      <File Id="AppSettings" Source="publish\appsettings.json" KeyPath="yes" />
+    </Component>
+
+    <!-- Config read by the agent at startup. -->
+    <Component Id="RegistryConfig" Directory="INSTALLFOLDER" Guid="*">
+      <RegistryKey Root="HKLM" Key="SOFTWARE\DKS\PstMigrationAgent">
+        <RegistryValue Type="integer" Name="Installed" Value="1" KeyPath="yes" />
+        <RegistryValue Type="string"  Name="PortalUrl"         Value="[PORTAL_URL]" />
+        <RegistryValue Type="string"  Name="RegistrationToken" Value="[REGISTRATION_TOKEN]" />
+        <RegistryValue Type="string"  Name="LogPath"           Value="[LOGPATH]" />
+        <RegistryValue Type="string"  Name="ProductCode"       Value="[ProductCode]" />
+      </RegistryKey>
+    </Component>
+  </Package>
+</Wix>

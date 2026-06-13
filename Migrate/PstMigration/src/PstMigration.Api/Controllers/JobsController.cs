@@ -100,8 +100,47 @@ public class JobsController : ControllerBase
         var job = await _db.MigrationJobs.FirstOrDefaultAsync(j => j.Id == jobId, ct);
         if (job is null) return NotFound();
         job.CompletedAt = DateTimeOffset.UtcNow;
-        job.Status = MigrationJobStatus.Completed;
+        var anyFailed = await _db.MigrationItems.AnyAsync(i => i.JobId == jobId && i.Status == MigrationItemStatus.Failed, ct);
+        job.Status = anyFailed ? MigrationJobStatus.CompletedWithErrors : MigrationJobStatus.Completed;
         await _db.SaveChangesAsync(ct);
         return Ok();
+    }
+
+    /// <summary>Source item ids already handled (for resume/idempotency on the agent).</summary>
+    [HttpGet("{jobId:guid}/mailboxes/{mailboxId:guid}/completed")]
+    public async Task<ActionResult<string[]>> Completed(Guid jobId, Guid mailboxId, CancellationToken ct)
+    {
+        var done = await _db.MigrationItems
+            .Where(i => i.JobId == jobId && i.MailboxId == mailboxId
+                && (i.Status == MigrationItemStatus.Completed
+                    || i.Status == MigrationItemStatus.CompletedWithWarning
+                    || i.Status == MigrationItemStatus.Skipped))
+            .Select(i => i.SourceItemId)
+            .ToArrayAsync(ct);
+        return Ok(done);
+    }
+
+    /// <summary>Creates a Queued job covering every mailbox mapping (simple Phase-1 job creation).</summary>
+    [HttpPost("create-from-mappings")]
+    public async Task<IActionResult> CreateFromMappings([FromQuery] string? name, CancellationToken ct)
+    {
+        var tenant = await _db.Tenants.OrderBy(t => t.CreatedAt).FirstOrDefaultAsync(ct);
+        if (tenant is null) return Problem("No tenant configured.");
+
+        var mappings = await _db.MailboxMappings.Where(m => m.TenantId == tenant.Id).ToListAsync(ct);
+        if (mappings.Count == 0) return BadRequest(new { error = "No mailbox mappings to migrate." });
+
+        var job = new MigrationJob
+        {
+            TenantId = tenant.Id,
+            Name = string.IsNullOrWhiteSpace(name) ? $"Migration {DateTimeOffset.UtcNow:yyyy-MM-dd HH:mm}" : name,
+            Status = MigrationJobStatus.Queued,
+        };
+        _db.MigrationJobs.Add(job);
+        foreach (var m in mappings)
+            _db.MigrationJobMailboxes.Add(new MigrationJobMailbox { JobId = job.Id, MailboxMappingId = m.Id, Status = MigrationJobStatus.Queued });
+
+        await _db.SaveChangesAsync(ct);
+        return Ok(new { jobId = job.Id, mailboxes = mappings.Count });
     }
 }

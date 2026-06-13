@@ -86,8 +86,28 @@ public class AgentsController : ControllerBase
     {
         var agent = await _db.Agents.FirstOrDefaultAsync(a => a.Id == agentId, ct);
         if (agent is null) return NotFound();
-        // Phase 1: job assignment is not implemented yet.
-        return NoContent();
+
+        var job = await _db.MigrationJobs
+            .Where(j => j.TenantId == agent.TenantId
+                        && (j.Status == MigrationJobStatus.Ready || j.Status == MigrationJobStatus.Queued))
+            .OrderBy(j => j.CreatedAt)
+            .FirstOrDefaultAsync(ct);
+        if (job is null) return NoContent();
+
+        var mailboxes = await _db.MigrationJobMailboxes
+            .Where(m => m.JobId == job.Id)
+            .Join(_db.MailboxMappings, jm => jm.MailboxMappingId, mm => mm.Id, (jm, mm) => new { jm, mm })
+            .Join(_db.PstFiles, x => x.mm.PstFileId, p => p.Id, (x, p) => new JobMailboxDto(
+                x.jm.Id, p.Path, x.mm.TargetMailbox, x.mm.RootFolderName,
+                x.mm.EmailMode.ToString(), x.mm.CalendarMode.ToString(), x.mm.ContactMode.ToString()))
+            .ToListAsync(ct);
+
+        job.Status = MigrationJobStatus.Running;
+        job.AssignedAgentId = agentId;
+        job.StartedAt ??= DateTimeOffset.UtcNow;
+        await _db.SaveChangesAsync(ct);
+
+        return Ok(new JobAssignmentDto(job.Id, job.Name, mailboxes));
     }
 
     [HttpPost("graph-token")]

@@ -35,6 +35,7 @@ public enum MigrationJobStatus
     CompletedWithErrors = 5,
     Failed = 6,
     Cancelled = 7,
+    Queued = 8,
 }
 
 /// <summary>Email migration mode (see spec section 12).</summary>

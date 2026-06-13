@@ -38,4 +38,27 @@ public sealed class PortalClient
         var resp = await _http.PostAsJsonAsync("api/agents/pst-inventory", request, ct);
         return resp.IsSuccessStatusCode;
     }
+
+    public async Task<JobAssignmentDto?> GetNextJobAsync(Guid agentId, CancellationToken ct)
+    {
+        var resp = await _http.GetAsync($"api/agents/{agentId}/jobs/next", ct);
+        if (resp.StatusCode == System.Net.HttpStatusCode.NoContent || !resp.IsSuccessStatusCode) return null;
+        return await resp.Content.ReadFromJsonAsync<JobAssignmentDto>(cancellationToken: ct);
+    }
+
+    public async Task UpdateJobStatusAsync(Guid jobId, string status, CancellationToken ct)
+        => await _http.PostAsJsonAsync($"api/jobs/{jobId}/status", new JobStatusUpdateRequest(jobId, status), ct);
+
+    public async Task ReportItemsAsync(ItemStatusBatchRequest request, CancellationToken ct)
+        => await _http.PostAsJsonAsync($"api/jobs/{request.JobId}/items/batch", request, ct);
+
+    public async Task CompleteJobAsync(Guid jobId, CancellationToken ct)
+        => await _http.PostAsync($"api/jobs/{jobId}/complete", content: null, ct);
+
+    public async Task<HashSet<string>> GetCompletedSourceIdsAsync(Guid jobId, Guid mailboxId, CancellationToken ct)
+    {
+        var ids = await _http.GetFromJsonAsync<string[]>(
+            $"api/jobs/{jobId}/mailboxes/{mailboxId}/completed", ct);
+        return new HashSet<string>(ids ?? Array.Empty<string>(), StringComparer.Ordinal);
+    }
 }

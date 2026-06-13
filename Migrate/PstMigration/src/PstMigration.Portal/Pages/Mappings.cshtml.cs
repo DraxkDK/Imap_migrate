@@ -73,6 +73,29 @@ public class MappingsModel : PageModel
         return RedirectToPage();
     }
 
+    public async Task<IActionResult> OnPostCreateJobAsync(CancellationToken ct)
+    {
+        var tenant = await _db.Tenants.OrderBy(t => t.CreatedAt).FirstOrDefaultAsync(ct);
+        var mappings = tenant is null
+            ? new List<MailboxMapping>()
+            : await _db.MailboxMappings.Where(m => m.TenantId == tenant.Id).ToListAsync(ct);
+        if (mappings.Count == 0) { Message = "No mappings to migrate."; return RedirectToPage(); }
+
+        var job = new MigrationJob
+        {
+            TenantId = tenant!.Id,
+            Name = $"Migration {DateTimeOffset.UtcNow:yyyy-MM-dd HH:mm}",
+            Status = MigrationJobStatus.Queued,
+        };
+        _db.MigrationJobs.Add(job);
+        foreach (var m in mappings)
+            _db.MigrationJobMailboxes.Add(new MigrationJobMailbox { JobId = job.Id, MailboxMappingId = m.Id, Status = MigrationJobStatus.Queued });
+        await _db.SaveChangesAsync(ct);
+
+        Message = $"Job created for {mappings.Count} mailbox(es). An agent will pick it up.";
+        return RedirectToPage();
+    }
+
     private static T ParseEnum<T>(string[] cols, int index, T fallback) where T : struct
         => cols.Length > index && Enum.TryParse<T>(cols[index].Trim(), ignoreCase: true, out var v) ? v : fallback;
 }

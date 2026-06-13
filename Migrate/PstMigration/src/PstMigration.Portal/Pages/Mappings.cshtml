@@ -4,7 +4,13 @@
     ViewData["Title"] = "Mailbox Mappings";
 }
 
-<h1 class="h3 mb-3">PST → Mailbox Mappings</h1>
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">PST → Mailbox Mappings</h1>
+    <form method="post" asp-page-handler="CreateJob"
+          onsubmit="return confirm('Create a migration job for all mappings?');">
+        <button class="btn btn-success">Create migration job</button>
+    </form>
+</div>
 
 @if (Model.Message is not null)
 {

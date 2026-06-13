@@ -11,16 +11,21 @@ public sealed class AgentWorker : BackgroundService
 {
     private readonly PortalClient _portal;
     private readonly PstScanner _scanner;
+    private readonly GraphTokenProvider _tokenProvider;
+    private readonly MigrationRunner _runner;
     private readonly IConfiguration _config;
     private readonly ILogger<AgentWorker> _logger;
 
     private Guid _agentId;
     private int _heartbeatSeconds = 30;
 
-    public AgentWorker(PortalClient portal, PstScanner scanner, IConfiguration config, ILogger<AgentWorker> logger)
+    public AgentWorker(PortalClient portal, PstScanner scanner, GraphTokenProvider tokenProvider,
+        MigrationRunner runner, IConfiguration config, ILogger<AgentWorker> logger)
     {
         _portal = portal;
         _scanner = scanner;
+        _tokenProvider = tokenProvider;
+        _runner = runner;
         _config = config;
         _logger = logger;
     }
@@ -43,6 +48,7 @@ public sealed class AgentWorker : BackgroundService
                 if (resp is not null)
                 {
                     _agentId = resp.AgentId;
+                    _tokenProvider.AgentId = _agentId;
                     _heartbeatSeconds = Math.Max(5, resp.HeartbeatIntervalSeconds);
                     _logger.LogInformation("Registered with portal as agent {AgentId} (tenant {Tenant})", _agentId, resp.TenantDomain);
                 }
@@ -79,7 +85,7 @@ public sealed class AgentWorker : BackgroundService
             _logger.LogError(ex, "PST scan failed.");
         }
 
-        // Heartbeat loop.
+        // Heartbeat + job polling loop.
         while (!stoppingToken.IsCancellationRequested)
         {
             try
@@ -88,11 +94,18 @@ public sealed class AgentWorker : BackgroundService
                     new AgentHeartbeatRequest(_agentId, CurrentJobId: null, ActiveItems: 0,
                         CpuPercent: null, FreeDiskBytes: GetFreeDisk()),
                     stoppingToken);
+
+                var job = await _portal.GetNextJobAsync(_agentId, stoppingToken);
+                if (job is not null)
+                {
+                    _logger.LogInformation("Picked up job {Job}", job.JobName);
+                    await _runner.RunJobAsync(job, stoppingToken);
+                }
             }
             catch (OperationCanceledException) { break; }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Heartbeat failed.");
+                _logger.LogWarning(ex, "Heartbeat/job loop error.");
             }
             await Task.Delay(TimeSpan.FromSeconds(_heartbeatSeconds), stoppingToken);
         }
