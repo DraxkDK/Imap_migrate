@@ -1,4 +1,4 @@
-using PstMigration.Domain.Entities;
+using Microsoft.EntityFrameworkCore;
 using PstMigration.Infrastructure;
 using PstMigration.Infrastructure.Persistence;
 using Serilog;
@@ -21,7 +21,9 @@ try
     {
         var db = scope.ServiceProvider.GetRequiredService<MigrationDbContext>();
         db.Database.EnsureCreated();
-        SeedDefaults(db, app.Configuration);
+        // Defensive: add columns introduced after a DB was first created.
+        try { db.Database.ExecuteSqlRaw("ALTER TABLE \"Tenants\" ADD COLUMN \"RegistrationTokenHash\" TEXT"); }
+        catch { /* column already exists */ }
     }
 
     app.UseSerilogRequestLogging();
@@ -36,30 +38,6 @@ catch (Exception ex)
 finally
 {
     Log.CloseAndFlush();
-}
-
-// Seed a default tenant + app-registration placeholder so the system is runnable
-// out of the box. Real tenants/app registrations are configured via the portal.
-static void SeedDefaults(MigrationDbContext db, IConfiguration config)
-{
-    if (db.Tenants.Any()) return;
-
-    var tenant = new Tenant
-    {
-        Name = config["DefaultTenant:Name"] ?? "Default Tenant",
-        TenantDomain = config["DefaultTenant:Domain"] ?? "contoso.onmicrosoft.com",
-        EntraTenantId = config["DefaultTenant:EntraTenantId"] ?? "00000000-0000-0000-0000-000000000000",
-    };
-    db.Tenants.Add(tenant);
-    db.AppRegistrations.Add(new AppRegistration
-    {
-        TenantId = tenant.Id,
-        ClientId = config["DefaultTenant:ClientId"] ?? "00000000-0000-0000-0000-000000000000",
-        CertificateThumbprint = config["DefaultTenant:CertThumbprint"] ?? "",
-        CertificateLocation = config["DefaultTenant:CertLocation"] ?? "store:CurrentUser/My",
-    });
-    db.SaveChanges();
-    Log.Information("Seeded default tenant {Domain}", tenant.TenantDomain);
 }
 
 public partial class Program { }

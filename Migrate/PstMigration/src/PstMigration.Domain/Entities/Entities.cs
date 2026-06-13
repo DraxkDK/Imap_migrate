@@ -7,6 +7,8 @@ public class Tenant
     public string Name { get; set; } = "";
     public string TenantDomain { get; set; } = "";
     public string EntraTenantId { get; set; } = "";
+    /// <summary>SHA-256 of the per-tenant agent registration token (raw token never stored).</summary>
+    public string? RegistrationTokenHash { get; set; }
     public bool IsActive { get; set; } = true;
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 

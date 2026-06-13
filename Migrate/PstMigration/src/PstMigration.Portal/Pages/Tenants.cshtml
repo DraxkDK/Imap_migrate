@@ -1,0 +1,72 @@
+@page
+@model TenantsModel
+@{
+    ViewData["Title"] = "Tenants & App Registrations";
+}
+
+<h1 class="h3 mb-3">Tenants & App Registrations</h1>
+<p class="text-muted small">Each customer = one tenant + its Entra app registration + a registration token agents use to enrol.</p>
+
+@if (Model.Message is not null)
+{
+    <div class="alert alert-info py-2">@Model.Message</div>
+}
+@if (Model.NewToken is not null)
+{
+    <div class="alert alert-warning">
+        <strong>Registration token (shown once):</strong>
+        <code>@Model.NewToken</code>
+        <div class="small">Put this in the agent install (MSI <code>REGISTRATION_TOKEN</code> / appsettings <code>Portal:RegistrationToken</code>).</div>
+    </div>
+}
+
+<div class="card mb-4">
+    <div class="card-header">Add tenant</div>
+    <div class="card-body">
+        <form method="post" asp-page-handler="Create" class="row g-2">
+            <div class="col-md-3"><label class="form-label small">Customer name</label><input name="name" class="form-control form-control-sm" required /></div>
+            <div class="col-md-3"><label class="form-label small">Tenant domain</label><input name="domain" class="form-control form-control-sm" placeholder="x.onmicrosoft.com" required /></div>
+            <div class="col-md-3"><label class="form-label small">Directory (tenant) ID</label><input name="entraTenantId" class="form-control form-control-sm" required /></div>
+            <div class="col-md-3"><label class="form-label small">Application (client) ID</label><input name="clientId" class="form-control form-control-sm" required /></div>
+            <div class="col-md-4"><label class="form-label small">Certificate thumbprint</label><input name="certThumbprint" class="form-control form-control-sm" /></div>
+            <div class="col-md-5"><label class="form-label small">Certificate location</label><input name="certLocation" class="form-control form-control-sm" value="store:CurrentUser/My" /></div>
+            <div class="col-md-3 d-flex align-items-end"><button class="btn btn-sm btn-primary w-100">Create tenant + token</button></div>
+        </form>
+        <div class="small text-muted mt-2">Certificate location: <code>store:CurrentUser/My</code> (Windows store by thumbprint) or <code>file:/path/cert.pfx</code>. The private key stays on the portal machine.</div>
+    </div>
+</div>
+
+@foreach (var t in Model.Tenants)
+{
+    <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span>@t.Name <span class="text-muted small">— @t.TenantDomain</span></span>
+            <span class="badge @(t.RegistrationTokenHash is null ? "bg-danger" : "bg-success")">
+                @(t.RegistrationTokenHash is null ? "no token" : "token set")
+            </span>
+        </div>
+        <div class="card-body">
+            <form method="post" asp-page-handler="Update" class="row g-2">
+                <input type="hidden" name="id" value="@t.Id" />
+                <div class="col-md-3"><label class="form-label small">Customer name</label><input name="name" class="form-control form-control-sm" value="@t.Name" /></div>
+                <div class="col-md-3"><label class="form-label small">Tenant domain</label><input name="domain" class="form-control form-control-sm" value="@t.TenantDomain" /></div>
+                <div class="col-md-3"><label class="form-label small">Directory (tenant) ID</label><input name="entraTenantId" class="form-control form-control-sm" value="@t.EntraTenantId" /></div>
+                <div class="col-md-3"><label class="form-label small">Application (client) ID</label><input name="clientId" class="form-control form-control-sm" value="@t.AppRegistration?.ClientId" /></div>
+                <div class="col-md-4"><label class="form-label small">Certificate thumbprint</label><input name="certThumbprint" class="form-control form-control-sm" value="@t.AppRegistration?.CertificateThumbprint" /></div>
+                <div class="col-md-5"><label class="form-label small">Certificate location</label><input name="certLocation" class="form-control form-control-sm" value="@t.AppRegistration?.CertificateLocation" /></div>
+                <div class="col-md-3 d-flex align-items-end gap-2">
+                    <button class="btn btn-sm btn-outline-primary">Save</button>
+                </div>
+            </form>
+            <form method="post" asp-page-handler="RegenToken" class="mt-2"
+                  onsubmit="return confirm('Generate a new registration token? Existing agents keep working; new enrolments must use the new token.');">
+                <input type="hidden" name="id" value="@t.Id" />
+                <button class="btn btn-xs btn-outline-warning">Regenerate registration token</button>
+            </form>
+        </div>
+    </div>
+}
+@if (Model.Tenants.Count == 0)
+{
+    <div class="alert alert-secondary">No tenants yet. Add one above.</div>
+}

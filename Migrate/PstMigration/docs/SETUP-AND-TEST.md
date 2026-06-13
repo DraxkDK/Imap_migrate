@@ -35,19 +35,15 @@ New-ApplicationAccessPolicy -AppId <client-id> -PolicyScopeGroupId <mail-enabled
 ```
 Put the test mailbox in that security group.
 
-## 4. Point the portal at the tenant
-Edit `src/PstMigration.Api/appsettings.json` (and the Portal shares the DB):
-```json
-"DefaultTenant": {
-  "Domain": "yourtenant.onmicrosoft.com",
-  "EntraTenantId": "<tenant-id>",
-  "ClientId": "<client-id>",
-  "CertThumbprint": "<thumbprint>",          // for store: location
-  "CertLocation": "store:CurrentUser/My"      // or "file:/opt/pstmigration/pstmigration.pfx"
-},
-"Agent": { "RegistrationToken": "<pick-a-strong-token>" }
-```
-Delete `pstmigration.db` after editing so the seed re-reads these values.
+## 4. Add the tenant on the Portal (UI)
+Run the Portal, open **Tenants**, and **Add tenant**:
+- Customer name, Tenant domain
+- Directory (tenant) ID, Application (client) ID
+- Certificate thumbprint + location (`store:CurrentUser/My` or `file:/path/cert.pfx`)
+
+On save the portal shows a **registration token once** — copy it; that is the
+`REGISTRATION_TOKEN` for agents of this customer. Each customer/tenant gets its
+own token (multi-tenant). No `appsettings.json` editing or DB deletion needed.
 
 ## 5. Run the three components
 ```bash

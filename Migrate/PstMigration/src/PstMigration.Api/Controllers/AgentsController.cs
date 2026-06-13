@@ -31,16 +31,15 @@ public class AgentsController : ControllerBase
     public async Task<ActionResult<AgentRegistrationResponse>> Register(
         [FromBody] AgentRegistrationRequest request, CancellationToken ct)
     {
-        var expected = _config["Agent:RegistrationToken"];
-        if (string.IsNullOrEmpty(expected) ||
-            !TokenHasher.FixedTimeEquals(TokenHasher.Sha256Hex(request.RegistrationToken), TokenHasher.Sha256Hex(expected)))
+        // Match the registration token to a tenant (multi-tenant SaaS).
+        var hash = TokenHasher.Sha256Hex(request.RegistrationToken ?? "");
+        var tenant = await _db.Tenants.FirstOrDefaultAsync(
+            t => t.IsActive && t.RegistrationTokenHash == hash, ct);
+        if (tenant is null)
         {
             _logger.LogWarning("Agent registration rejected for machine {Machine}", request.MachineName);
             return Unauthorized(new { error = "Invalid registration token." });
         }
-
-        var tenant = await _db.Tenants.OrderBy(t => t.CreatedAt).FirstOrDefaultAsync(ct);
-        if (tenant is null) return Problem("No tenant configured.");
 
         var agent = await _db.Agents.FirstOrDefaultAsync(
             a => a.TenantId == tenant.Id && a.MachineName == request.MachineName, ct);
