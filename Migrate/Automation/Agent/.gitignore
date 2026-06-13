@@ -1,4 +1,10 @@
 agent-exe/
+exe-single/
+publish/
 Installer/publish/
+bin/
+obj/
 *.msi
+*.exe
 *.wixpdb
+*.user
