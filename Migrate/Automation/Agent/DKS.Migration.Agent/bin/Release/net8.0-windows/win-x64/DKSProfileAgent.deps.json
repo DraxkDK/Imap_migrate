@@ -10,9 +10,7 @@
       "DKSProfileAgent/1.0.0": {
         "dependencies": {
           "Microsoft.Extensions.Hosting": "8.0.1",
-          "Microsoft.NET.ILLink.Tasks": "8.0.27",
-          "Microsoft.Win32.Registry": "5.0.0",
-          "System.Text.Json": "8.0.5"
+          "XstReader.Api": "1.0.6"
         },
         "runtime": {
           "DKSProfileAgent.dll": {}
@@ -377,14 +375,6 @@
           }
         }
       },
-      "Microsoft.NET.ILLink.Tasks/8.0.27": {},
-      "Microsoft.NETCore.Platforms/5.0.0": {},
-      "Microsoft.Win32.Registry/5.0.0": {
-        "dependencies": {
-          "System.Security.AccessControl": "5.0.0",
-          "System.Security.Principal.Windows": "5.0.0"
-        }
-      },
       "System.Diagnostics.EventLog/8.0.1": {
         "runtime": {
           "runtimes/win/lib/net8.0/System.Diagnostics.EventLog.Messages.dll": {
@@ -397,14 +387,25 @@
           }
         }
       },
-      "System.Security.AccessControl/5.0.0": {
-        "dependencies": {
-          "Microsoft.NETCore.Platforms": "5.0.0",
-          "System.Security.Principal.Windows": "5.0.0"
+      "System.Security.Cryptography.Pkcs/6.0.1": {
+        "runtime": {
+          "runtimes/win/lib/net6.0/System.Security.Cryptography.Pkcs.dll": {
+            "assemblyVersion": "6.0.0.0",
+            "fileVersion": "6.0.522.21309"
+          }
         }
       },
-      "System.Security.Principal.Windows/5.0.0": {},
-      "System.Text.Json/8.0.5": {}
+      "XstReader.Api/1.0.6": {
+        "dependencies": {
+          "System.Security.Cryptography.Pkcs": "6.0.1"
+        },
+        "runtime": {
+          "lib/netstandard2.0/XstReader.Api.dll": {
+            "assemblyVersion": "1.0.6.0",
+            "fileVersion": "1.0.6.0"
+          }
+        }
+      }
     }
   },
   "libraries": {
@@ -602,27 +603,6 @@
       "path": "microsoft.extensions.primitives/8.0.0",
       "hashPath": "microsoft.extensions.primitives.8.0.0.nupkg.sha512"
     },
-    "Microsoft.NET.ILLink.Tasks/8.0.27": {
-      "type": "package",
-      "serviceable": true,
-      "sha512": "sha512-rQi9TxifHRnXP7lVRZH05DxD2/XGbJp12q0ozcbrlBlBnyyzssFTH/2vLhtKWUp2CT1qVscTrcYTFiwTyKPKRg==",
-      "path": "microsoft.net.illink.tasks/8.0.27",
-      "hashPath": "microsoft.net.illink.tasks.8.0.27.nupkg.sha512"
-    },
-    "Microsoft.NETCore.Platforms/5.0.0": {
-      "type": "package",
-      "serviceable": true,
-      "sha512": "sha512-VyPlqzH2wavqquTcYpkIIAQ6WdenuKoFN0BdYBbCWsclXacSOHNQn66Gt4z5NBqEYW0FAPm5rlvki9ZiCij5xQ==",
-      "path": "microsoft.netcore.platforms/5.0.0",
-      "hashPath": "microsoft.netcore.platforms.5.0.0.nupkg.sha512"
-    },
-    "Microsoft.Win32.Registry/5.0.0": {
-      "type": "package",
-      "serviceable": true,
-      "sha512": "sha512-dDoKi0PnDz31yAyETfRntsLArTlVAVzUzCIvvEDsDsucrl33Dl8pIJG06ePTJTI3tGpeyHS9Cq7Foc/s4EeKcg==",
-      "path": "microsoft.win32.registry/5.0.0",
-      "hashPath": "microsoft.win32.registry.5.0.0.nupkg.sha512"
-    },
     "System.Diagnostics.EventLog/8.0.1": {
       "type": "package",
       "serviceable": true,
@@ -630,26 +610,19 @@
       "path": "system.diagnostics.eventlog/8.0.1",
       "hashPath": "system.diagnostics.eventlog.8.0.1.nupkg.sha512"
     },
-    "System.Security.AccessControl/5.0.0": {
+    "System.Security.Cryptography.Pkcs/6.0.1": {
       "type": "package",
       "serviceable": true,
-      "sha512": "sha512-dagJ1mHZO3Ani8GH0PHpPEe/oYO+rVdbQjvjJkBRNQkX4t0r1iaeGn8+/ybkSLEan3/slM0t59SVdHzuHf2jmw==",
-      "path": "system.security.accesscontrol/5.0.0",
-      "hashPath": "system.security.accesscontrol.5.0.0.nupkg.sha512"
+      "sha512": "sha512-ynmbW2GjIGg9K1wXmVIRs4IlyDolf0JXNpzFQ8JCVgwM+myUC2JeUggl2PwQig2PNVMegKmN1aAx7WPQ8tI3vA==",
+      "path": "system.security.cryptography.pkcs/6.0.1",
+      "hashPath": "system.security.cryptography.pkcs.6.0.1.nupkg.sha512"
     },
-    "System.Security.Principal.Windows/5.0.0": {
+    "XstReader.Api/1.0.6": {
       "type": "package",
       "serviceable": true,
-      "sha512": "sha512-t0MGLukB5WAVU9bO3MGzvlGnyJPgUlcwerXn1kzBRjwLKixT96XV0Uza41W49gVd8zEMFu9vQEFlv0IOrytICA==",
-      "path": "system.security.principal.windows/5.0.0",
-      "hashPath": "system.security.principal.windows.5.0.0.nupkg.sha512"
-    },
-    "System.Text.Json/8.0.5": {
-      "type": "package",
-      "serviceable": true,
-      "sha512": "sha512-0f1B50Ss7rqxXiaBJyzUu9bWFOO2/zSlifZ/UNMdiIpDYe4cY4LQQicP4nirK1OS31I43rn062UIJ1Q9bpmHpg==",
-      "path": "system.text.json/8.0.5",
-      "hashPath": "system.text.json.8.0.5.nupkg.sha512"
+      "sha512": "sha512-zfb/sOUvaQdA7QO0dJqw/SeH5O52H8llJacOyf6seAucDPiBLEnn0Jt79Uyy+ESHMh4d3hO5FGGQHoVcKS8ahg==",
+      "path": "xstreader.api/1.0.6",
+      "hashPath": "xstreader.api.1.0.6.nupkg.sha512"
     }
   }
 }

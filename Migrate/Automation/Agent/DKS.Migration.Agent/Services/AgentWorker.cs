@@ -539,6 +539,9 @@ public class AgentWorker : BackgroundService
                 _state.CurrentStep = "NeedManualAction";
                 await Log(_state.DeviceId, "Rollback", "Warning", $"Rollback executed — restored profile '{profileToRestore}'.");
                 break;
+            case "ImportToM365":
+                await GraphImportAsync(ct);
+                break;
             case "Uninstall":
                 await UninstallSelfAsync();
                 break;
@@ -546,6 +549,73 @@ public class AgentWorker : BackgroundService
                 await Log(_state.DeviceId, "Command", "Warning", $"Unknown command: {command}");
                 break;
         }
+    }
+
+    private async Task GraphImportAsync(CancellationToken ct)
+    {
+        var mailbox = _state!.TargetMailbox ?? _state.NewEmail;
+        if (string.IsNullOrWhiteSpace(mailbox))
+        {
+            await Log(_state.DeviceId, "GraphImport", "Error", "No target mailbox set (add user mapping with NewEmail/TargetMailbox).");
+            return;
+        }
+
+        await Log(_state.DeviceId, "GraphImport", "Info", $"Requesting Graph token for {mailbox}...");
+        var token = await _portal.GetGraphTokenAsync();
+        if (string.IsNullOrEmpty(token))
+        {
+            await Log(_state.DeviceId, "GraphImport", "Error", "Could not get Graph token — check the customer's Microsoft 365 app registration on the portal.");
+            _state.CurrentStep = "Failed";
+            await _portal.CheckInAsync(_state.DeviceId, "Failed", errorMessage: "Graph token unavailable");
+            return;
+        }
+
+        // Collect PSTs from the backup folder + any reported source paths.
+        var psts = new List<string>();
+        var backupDir = string.IsNullOrEmpty(_state.BackupPstPath) ? LocalBackupPath : _state.BackupPstPath;
+        if (Directory.Exists(backupDir))
+            psts.AddRange(Directory.EnumerateFiles(backupDir, "*.pst", SearchOption.AllDirectories));
+        foreach (var p in _state.PstFiles)
+        {
+            var path = p.BackupPath ?? p.SourcePath;
+            if (!string.IsNullOrEmpty(path) && File.Exists(path) && !psts.Contains(path))
+                psts.Add(path);
+        }
+        if (psts.Count == 0)
+        {
+            await Log(_state.DeviceId, "GraphImport", "Warning", "No PST found to import. Run Export PST first.");
+            return;
+        }
+
+        _state.CurrentStep = "ImportingToM365";
+        await _portal.CheckInAsync(_state.DeviceId, "ImportingToM365");
+        var rootFolder = string.IsNullOrWhiteSpace(_state.ImportTargetFolder) ? "Imported PST" : _state.ImportTargetFolder!.TrimStart('/');
+
+        int totalImported = 0, totalFailed = 0;
+        using (var importer = new GraphImporter(token, _logger))
+        {
+            foreach (var pst in psts.Distinct())
+            {
+                ct.ThrowIfCancellationRequested();
+                await Log(_state.DeviceId, "GraphImport", "Info", $"Importing {Path.GetFileName(pst)} -> {mailbox} ...");
+                try
+                {
+                    var (imp, fail) = await importer.ImportPstAsync(pst, mailbox, rootFolder, ct);
+                    totalImported += imp; totalFailed += fail;
+                    await Log(_state.DeviceId, "GraphImport", fail > 0 ? "Warning" : "Info",
+                        $"{Path.GetFileName(pst)}: {imp} imported, {fail} failed");
+                }
+                catch (Exception ex)
+                {
+                    totalFailed++;
+                    await Log(_state.DeviceId, "GraphImport", "Error", $"{Path.GetFileName(pst)} failed: {ex.Message}");
+                }
+            }
+        }
+
+        _state.CurrentStep = totalFailed > 0 ? "CompletedWithWarning" : "Completed";
+        await _portal.CheckInAsync(_state.DeviceId, _state.CurrentStep);
+        await Log(_state.DeviceId, "GraphImport", "Info", $"Graph import complete: {totalImported} imported, {totalFailed} failed.");
     }
 
     private async Task UninstallSelfAsync()

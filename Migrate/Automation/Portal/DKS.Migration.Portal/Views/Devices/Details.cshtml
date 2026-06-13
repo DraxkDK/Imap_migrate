@@ -40,7 +40,7 @@
             <div class="card-header">Actions</div>
             <div class="card-body">
                 <div class="row g-2">
-                    @foreach (var (cmd, label, cls) in new[]{ ("ScanOutlook","Scan Outlook","outline-primary"), ("ExportPst","Export PST","outline-warning"), ("ReconfigureProfile","Reconfigure Profile","outline-info"), ("ImportPst","Import PST","outline-success"), ("RetryFailed","Retry Failed Step","outline-secondary"), ("Rollback","Rollback Profile","outline-danger") })
+                    @foreach (var (cmd, label, cls) in new[]{ ("ScanOutlook","Scan Outlook","outline-primary"), ("ExportPst","Export PST","outline-warning"), ("ImportToM365","Import to M365 (Graph)","success"), ("ReconfigureProfile","Reconfigure Profile","outline-info"), ("ImportPst","Import PST (Outlook)","outline-success"), ("RetryFailed","Retry Failed Step","outline-secondary"), ("Rollback","Rollback Profile","outline-danger") })
                     {
                         <div class="col-md-4">
                             <form asp-action="SendCommand" asp-route-id="@Model.DeviceId" method="post">

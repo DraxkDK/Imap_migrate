@@ -57,6 +57,10 @@
             "System.Text.Json": {
               "target": "Package",
               "version": "[8.0.5, )"
+            },
+            "XstReader.Api": {
+              "target": "Package",
+              "version": "[1.0.6, )"
             }
           },
           "imports": [

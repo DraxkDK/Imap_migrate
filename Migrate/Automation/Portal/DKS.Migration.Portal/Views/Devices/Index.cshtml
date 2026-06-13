@@ -1,25 +1,33 @@
 @model IEnumerable<DKS.Migration.Portal.Models.Device>
 @{ ViewData["Title"] = "Devices"; }
 
+<form method="post" asp-action="ImportToM365">
+@Html.AntiForgeryToken()
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
-        Devices
         <div class="d-flex gap-2 align-items-center">
-            <form method="get" class="d-flex gap-2">
-                @if (ViewBag.BatchId != null) { <input type="hidden" name="batchId" value="@ViewBag.BatchId" /> }
-                <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
-                    <option value="">All Statuses</option>
-                    @foreach (var s in Enum.GetNames(typeof(DKS.Migration.Portal.Models.DeviceStatus)))
-                    {
-                        <option value="@s" selected="@(ViewBag.Status == s)">@s</option>
-                    }
-                </select>
-            </form>
+            <span>Devices</span>
+            <button type="submit" class="btn btn-sm btn-success"
+                    onclick="return confirm('Import the selected device(s) PST to Microsoft 365 via Graph? Agents run it on next check-in.');">
+                &#9729; Import selected to M365
+            </button>
+        </div>
+        <div class="d-flex gap-2 align-items-center">
+            <select name="status" form="filterForm" class="form-select form-select-sm" onchange="document.getElementById('filterForm').submit()">
+                <option value="">All Statuses</option>
+                @foreach (var s in Enum.GetNames(typeof(DKS.Migration.Portal.Models.DeviceStatus)))
+                {
+                    <option value="@s" selected="@(ViewBag.Status == s)">@s</option>
+                }
+            </select>
         </div>
     </div>
     <div class="card-body p-0">
         <table class="table table-hover mb-0">
-            <thead><tr><th>Computer</th><th>User</th><th>Batch</th><th>Outlook</th><th>PST Count</th><th>Status</th><th>Last Check-in</th><th>Error</th><th></th></tr></thead>
+            <thead><tr>
+                <th style="width:32px"><input type="checkbox" onclick="document.querySelectorAll('.dev-chk').forEach(c=>c.checked=this.checked)" /></th>
+                <th>Computer</th><th>User</th><th>Batch</th><th>Outlook</th><th>PST Count</th><th>Status</th><th>Last Check-in</th><th>Error</th><th></th>
+            </tr></thead>
             <tbody>
             @foreach (var d in Model)
             {
@@ -29,6 +37,7 @@
                            d.CurrentStatus == DKS.Migration.Portal.Models.DeviceStatus.AgentOnline ? "bg-info" :
                            d.CurrentStatus == DKS.Migration.Portal.Models.DeviceStatus.Pending ? "bg-light text-dark border" : "bg-secondary";
                 <tr>
+                    <td><input class="dev-chk" type="checkbox" name="ids" value="@d.DeviceId" /></td>
                     <td><a asp-action="Details" asp-route-id="@d.DeviceId"><strong>@d.ComputerName</strong></a></td>
                     <td class="text-muted">@d.WindowsUsername</td>
                     <td><a asp-controller="Batches" asp-action="Details" asp-route-id="@d.BatchId" class="small">@d.Batch?.Customer?.CustomerCode</a></td>
@@ -42,9 +51,15 @@
             }
             @if (!Model.Any())
             {
-                <tr><td colspan="9" class="text-center text-muted py-4">No devices found. Install the agent on user machines.</td></tr>
+                <tr><td colspan="10" class="text-center text-muted py-4">No devices found. Install the agent on user machines.</td></tr>
             }
             </tbody>
         </table>
     </div>
 </div>
+</form>
+
+@* Status filter (separate GET form so it doesn't submit the bulk selection). *@
+<form id="filterForm" method="get">
+    @if (ViewBag.BatchId != null) { <input type="hidden" name="batchId" value="@ViewBag.BatchId" /> }
+</form>

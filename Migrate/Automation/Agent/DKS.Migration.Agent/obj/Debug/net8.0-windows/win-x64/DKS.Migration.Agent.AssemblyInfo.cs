@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("DKSProfileAgent")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+344956467c25da2badcc0392d6b5a4f12acd88aa")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+60bf59250a5ab67caa000325eda82ed84d23eca6")]
 [assembly: System.Reflection.AssemblyProductAttribute("DKSProfileAgent")]
 [assembly: System.Reflection.AssemblyTitleAttribute("DKSProfileAgent")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

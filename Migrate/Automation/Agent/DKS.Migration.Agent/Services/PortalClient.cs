@@ -85,6 +85,28 @@ public class PortalClient
 
     private record CheckInResponse(bool Ok, string? PendingCommand);
 
+    public async Task<string?> GetGraphTokenAsync()
+    {
+        try
+        {
+            var resp = await _http.PostAsJsonAsync("graph-token", new { agentToken = _config.AgentToken });
+            if (!resp.IsSuccessStatusCode)
+            {
+                _logger.LogError("Graph token request failed: {Status}", resp.StatusCode);
+                return null;
+            }
+            var result = await resp.Content.ReadFromJsonAsync<GraphTokenResponse>(_json);
+            return result?.AccessToken;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Graph token error");
+            return null;
+        }
+    }
+
+    private record GraphTokenResponse(string AccessToken, DateTimeOffset ExpiresOn);
+
     public async Task LogAsync(int deviceId, string step, string level, string message)
     {
         try

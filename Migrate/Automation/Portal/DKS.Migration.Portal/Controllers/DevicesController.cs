@@ -64,6 +64,32 @@ public class DevicesController : Controller
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    /// <summary>Queue the Graph-based "Import to M365" command for one or many devices.</summary>
+    [HttpPost]
+    public async Task<IActionResult> ImportToM365(int[] ids)
+    {
+        if (ids is null || ids.Length == 0)
+        {
+            TempData["Warning"] = "No devices selected.";
+            return RedirectToAction(nameof(Index));
+        }
+        var devices = await _db.Devices.Where(d => ids.Contains(d.DeviceId)).ToListAsync();
+        foreach (var d in devices)
+        {
+            d.PendingCommand = "ImportToM365";
+            _db.Logs.Add(new DeviceLog
+            {
+                DeviceId = d.DeviceId,
+                Step = "ManualCommand",
+                Level = Models.LogLevel.Info,
+                Message = "Import to M365 (Graph) queued — waiting for agent check-in.",
+            });
+        }
+        await _db.SaveChangesAsync();
+        TempData["Success"] = $"Import to M365 queued for {devices.Count} device(s). Agents run it on next check-in (~30s).";
+        return RedirectToAction(nameof(Index));
+    }
+
     [HttpPost]
     public async Task<IActionResult> Rollback(int id)
     {
