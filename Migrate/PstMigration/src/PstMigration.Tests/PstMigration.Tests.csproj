@@ -5,6 +5,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
+    <!-- Allow the net8 test host to run on a newer installed runtime (e.g. a dev
+         box that only has the .NET 10 runtime). No-op where net8 runtime exists. -->
+    <RollForward>LatestMajor</RollForward>
   </PropertyGroup>
 
   <ItemGroup>
