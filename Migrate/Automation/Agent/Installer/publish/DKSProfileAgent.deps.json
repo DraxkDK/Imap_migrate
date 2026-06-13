@@ -10,6 +10,7 @@
       "DKSProfileAgent/1.0.0": {
         "dependencies": {
           "Microsoft.Extensions.Hosting": "8.0.1",
+          "XstReader.Api": "1.0.6",
           "runtimepack.Microsoft.NETCore.App.Runtime.win-x64": "8.0.27"
         },
         "runtime": {
@@ -1106,6 +1107,25 @@
             "fileVersion": "8.0.1024.46610"
           }
         }
+      },
+      "System.Security.Cryptography.Pkcs/6.0.1": {
+        "runtime": {
+          "runtimes/win/lib/net6.0/System.Security.Cryptography.Pkcs.dll": {
+            "assemblyVersion": "6.0.0.0",
+            "fileVersion": "6.0.522.21309"
+          }
+        }
+      },
+      "XstReader.Api/1.0.6": {
+        "dependencies": {
+          "System.Security.Cryptography.Pkcs": "6.0.1"
+        },
+        "runtime": {
+          "lib/netstandard2.0/XstReader.Api.dll": {
+            "assemblyVersion": "1.0.6.0",
+            "fileVersion": "1.0.6.0"
+          }
+        }
       }
     }
   },
@@ -1315,6 +1335,20 @@
       "sha512": "sha512-n1ZP7NM2Gkn/MgD8+eOT5MulMj6wfeQMNS2Pizvq5GHCZfjlFMXV2irQlQmJhwA2VABC57M0auudO89Iu2uRLg==",
       "path": "system.diagnostics.eventlog/8.0.1",
       "hashPath": "system.diagnostics.eventlog.8.0.1.nupkg.sha512"
+    },
+    "System.Security.Cryptography.Pkcs/6.0.1": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-ynmbW2GjIGg9K1wXmVIRs4IlyDolf0JXNpzFQ8JCVgwM+myUC2JeUggl2PwQig2PNVMegKmN1aAx7WPQ8tI3vA==",
+      "path": "system.security.cryptography.pkcs/6.0.1",
+      "hashPath": "system.security.cryptography.pkcs.6.0.1.nupkg.sha512"
+    },
+    "XstReader.Api/1.0.6": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-zfb/sOUvaQdA7QO0dJqw/SeH5O52H8llJacOyf6seAucDPiBLEnn0Jt79Uyy+ESHMh4d3hO5FGGQHoVcKS8ahg==",
+      "path": "xstreader.api/1.0.6",
+      "hashPath": "xstreader.api.1.0.6.nupkg.sha512"
     }
   },
   "runtimes": {
