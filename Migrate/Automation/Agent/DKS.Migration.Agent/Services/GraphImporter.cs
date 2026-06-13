@@ -73,9 +73,12 @@ public sealed class GraphImporter : IDisposable
                     if (string.Equals(el.GetProperty("displayName").GetString(), name, StringComparison.OrdinalIgnoreCase))
                         return el.GetProperty("id").GetString()!;
         }
+        // Surface auth/mailbox problems at the first mailbox access with Graph's real reason.
+        else if (list.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden or HttpStatusCode.NotFound)
+            await EnsureGraphSuccessAsync(list, $"Access mailbox '{mailbox}'", ct);
 
         using var create = await SendAsync(() => JsonReq(HttpMethod.Post, baseUrl, new { displayName = name }), ct);
-        create.EnsureSuccessStatusCode();
+        await EnsureGraphSuccessAsync(create, $"Create folder '{name}' in '{mailbox}'", ct);
         using var cdoc = JsonDocument.Parse(await create.Content.ReadAsStringAsync(ct));
         return cdoc.RootElement.GetProperty("id").GetString()!;
     }
@@ -109,7 +112,7 @@ public sealed class GraphImporter : IDisposable
 
         using var resp = await SendAsync(() => JsonReq(HttpMethod.Post,
             $"users/{Uri.EscapeDataString(mailbox)}/mailFolders/{folderId}/messages", body), ct);
-        resp.EnsureSuccessStatusCode();
+        await EnsureGraphSuccessAsync(resp, $"Create message '{msg.Subject}'", ct);
 
         if (large.Count > 0)
         {
@@ -140,7 +143,7 @@ public sealed class GraphImporter : IDisposable
         using var session = await SendAsync(() => JsonReq(HttpMethod.Post,
             $"users/{Uri.EscapeDataString(mailbox)}/messages/{messageId}/attachments/createUploadSession",
             new { AttachmentItem = new { attachmentType = "file", name, size = (long)a.Size } }), ct);
-        session.EnsureSuccessStatusCode();
+        await EnsureGraphSuccessAsync(session, $"Create upload session for '{name}'", ct);
         using var sdoc = JsonDocument.Parse(await session.Content.ReadAsStringAsync(ct));
         var uploadUrl = sdoc.RootElement.GetProperty("uploadUrl").GetString()!;
 
@@ -160,6 +163,31 @@ public sealed class GraphImporter : IDisposable
             putResp.EnsureSuccessStatusCode();
             pos += read;
         }
+    }
+
+    /// <summary>Throws with Graph's actual error code/message (e.g. "Authorization_RequestDenied",
+    /// "ErrorNonExistentMailbox") instead of the opaque "403 Forbidden", so failures are diagnosable.</summary>
+    private static async Task EnsureGraphSuccessAsync(HttpResponseMessage resp, string operation, CancellationToken ct)
+    {
+        if (resp.IsSuccessStatusCode) return;
+        var body = "";
+        try { body = await resp.Content.ReadAsStringAsync(ct); } catch { /* ignore */ }
+        var detail = body;
+        try
+        {
+            using var doc = JsonDocument.Parse(body);
+            if (doc.RootElement.TryGetProperty("error", out var err))
+            {
+                var code = err.TryGetProperty("code", out var c) ? c.GetString() : null;
+                var message = err.TryGetProperty("message", out var m) ? m.GetString() : null;
+                detail = string.IsNullOrEmpty(code) ? message : $"{code}: {message}";
+            }
+        }
+        catch { /* body not JSON — keep raw */ }
+        var hint = (int)resp.StatusCode == 403
+            ? " (403 → grant the app the APPLICATION permission Mail.ReadWrite + admin consent, and make sure the target is a licensed Exchange Online mailbox in THIS tenant)"
+            : "";
+        throw new HttpRequestException($"{operation} → {(int)resp.StatusCode} {resp.StatusCode}. {detail}{hint}");
     }
 
     private static object[] Recipients(IEnumerable<XstRecipient>? recipients)
