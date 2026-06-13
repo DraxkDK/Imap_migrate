@@ -28,11 +28,13 @@
             <div class="col-md-3"><label class="form-label small">Tenant domain</label><input name="domain" class="form-control form-control-sm" placeholder="x.onmicrosoft.com" required /></div>
             <div class="col-md-3"><label class="form-label small">Directory (tenant) ID</label><input name="entraTenantId" class="form-control form-control-sm" required /></div>
             <div class="col-md-3"><label class="form-label small">Application (client) ID</label><input name="clientId" class="form-control form-control-sm" required /></div>
+            <div class="col-md-6"><label class="form-label small">Client secret <span class="text-success">(simplest)</span></label><input name="clientSecret" type="password" class="form-control form-control-sm" placeholder="paste the client secret value" /></div>
+            <div class="col-12"><hr class="my-1" /><span class="small text-muted">…or use a certificate instead (more secure):</span></div>
             <div class="col-md-4"><label class="form-label small">Certificate thumbprint</label><input name="certThumbprint" class="form-control form-control-sm" /></div>
-            <div class="col-md-5"><label class="form-label small">Certificate location</label><input name="certLocation" class="form-control form-control-sm" value="store:CurrentUser/My" /></div>
+            <div class="col-md-5"><label class="form-label small">Certificate location</label><input name="certLocation" class="form-control form-control-sm" placeholder="store:CurrentUser/My or file:/path/cert.pfx" /></div>
             <div class="col-md-3 d-flex align-items-end"><button class="btn btn-sm btn-primary w-100">Create tenant + token</button></div>
         </form>
-        <div class="small text-muted mt-2">Certificate location: <code>store:CurrentUser/My</code> (Windows store by thumbprint) or <code>file:/path/cert.pfx</code>. The private key stays on the portal machine.</div>
+        <div class="small text-muted mt-2">Client ID = Application ID. The client secret is <strong>encrypted at rest</strong>. Use either a secret (quick) or a certificate (recommended for production); secrets expire (max 24 months).</div>
     </div>
 </div>
 
@@ -52,6 +54,10 @@
                 <div class="col-md-3"><label class="form-label small">Tenant domain</label><input name="domain" class="form-control form-control-sm" value="@t.TenantDomain" /></div>
                 <div class="col-md-3"><label class="form-label small">Directory (tenant) ID</label><input name="entraTenantId" class="form-control form-control-sm" value="@t.EntraTenantId" /></div>
                 <div class="col-md-3"><label class="form-label small">Application (client) ID</label><input name="clientId" class="form-control form-control-sm" value="@t.AppRegistration?.ClientId" /></div>
+                <div class="col-md-6">
+                    <label class="form-label small">Client secret @(string.IsNullOrEmpty(t.AppRegistration?.ClientSecretEncrypted) ? "(not set)" : "— leave blank to keep")</label>
+                    <input name="clientSecret" type="password" class="form-control form-control-sm" placeholder="@(string.IsNullOrEmpty(t.AppRegistration?.ClientSecretEncrypted) ? "paste secret" : "•••••• (stored)")" />
+                </div>
                 <div class="col-md-4"><label class="form-label small">Certificate thumbprint</label><input name="certThumbprint" class="form-control form-control-sm" value="@t.AppRegistration?.CertificateThumbprint" /></div>
                 <div class="col-md-5"><label class="form-label small">Certificate location</label><input name="certLocation" class="form-control form-control-sm" value="@t.AppRegistration?.CertificateLocation" /></div>
                 <div class="col-md-3 d-flex align-items-end gap-2">

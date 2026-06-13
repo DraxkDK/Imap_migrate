@@ -12,7 +12,13 @@ Use a **test tenant** and a **test mailbox** you can throw away.
    `Mail.ReadWrite`, `Calendars.ReadWrite`, `Contacts.ReadWrite`, `User.Read.All`.
 4. Click **Grant admin consent**.
 
-## 2. Create + upload a certificate (cert stays on the portal machine)
+## 2. Choose a credential
+**Option A — Client secret (simplest):** App registration → Certificates & secrets
+→ New client secret → copy the **Value**. You'll paste it on the portal Tenants
+page; it is stored **encrypted at rest** (AES-GCM with `PstMigration:MasterKey`).
+Secrets expire (max 24 months). Skip section 2b.
+
+**Option B — Certificate (recommended for production):**
 On the machine that runs the **Portal** (dev box or VPS):
 ```powershell
 # Windows (PowerShell) — self-signed cert in CurrentUser\My

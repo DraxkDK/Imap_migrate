@@ -24,6 +24,8 @@ try
         // Defensive: add columns introduced after a DB was first created.
         try { db.Database.ExecuteSqlRaw("ALTER TABLE \"Tenants\" ADD COLUMN \"RegistrationTokenHash\" TEXT"); }
         catch { /* column already exists */ }
+        try { db.Database.ExecuteSqlRaw("ALTER TABLE \"AppRegistrations\" ADD COLUMN \"ClientSecretEncrypted\" TEXT"); }
+        catch { /* column already exists */ }
     }
 
     app.UseSerilogRequestLogging();

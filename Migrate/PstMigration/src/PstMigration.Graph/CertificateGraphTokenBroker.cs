@@ -28,13 +28,34 @@ public sealed class CertificateGraphTokenBroker : IGraphTokenBroker
         var reg = await _provider.GetAsync(tenantId, cancellationToken)
             ?? throw new InvalidOperationException($"No app registration configured for tenant {tenantId}.");
 
-        using var cert = LoadCertificate(reg.CertificateLocation, reg.CertificateThumbprint);
-        var credential = new ClientCertificateCredential(reg.EntraTenantId, reg.ClientId, cert,
-            new ClientCertificateCredentialOptions { SendCertificateChain = true });
+        TokenCredential credential;
+        X509Certificate2? cert = null;
+        if (!string.IsNullOrEmpty(reg.ClientSecret))
+        {
+            // Client-secret flow (simplest). Secret was stored encrypted at rest.
+            credential = new ClientSecretCredential(reg.EntraTenantId, reg.ClientId, reg.ClientSecret);
+        }
+        else if (!string.IsNullOrEmpty(reg.CertificateThumbprint) || !string.IsNullOrEmpty(reg.CertificateLocation))
+        {
+            cert = LoadCertificate(reg.CertificateLocation ?? "store:CurrentUser/My", reg.CertificateThumbprint ?? "");
+            credential = new ClientCertificateCredential(reg.EntraTenantId, reg.ClientId, cert,
+                new ClientCertificateCredentialOptions { SendCertificateChain = true });
+        }
+        else
+        {
+            throw new InvalidOperationException($"Tenant {tenantId} has no client secret or certificate configured.");
+        }
 
-        var token = await credential.GetTokenAsync(new TokenRequestContext(Scopes), cancellationToken);
-        _logger.LogInformation("Acquired Graph token for tenant {TenantId} (expires {Expiry:o})", tenantId, token.ExpiresOn);
-        return new GraphAccessToken(token.Token, token.ExpiresOn);
+        try
+        {
+            var token = await credential.GetTokenAsync(new TokenRequestContext(Scopes), cancellationToken);
+            _logger.LogInformation("Acquired Graph token for tenant {TenantId} (expires {Expiry:o})", tenantId, token.ExpiresOn);
+            return new GraphAccessToken(token.Token, token.ExpiresOn);
+        }
+        finally
+        {
+            cert?.Dispose();
+        }
     }
 
     /// <summary>

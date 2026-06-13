@@ -11,7 +11,12 @@ namespace PstMigration.Portal.Pages;
 public class TenantsModel : PageModel
 {
     private readonly MigrationDbContext _db;
-    public TenantsModel(MigrationDbContext db) => _db = db;
+    private readonly PstMigration.Application.Abstractions.ISecretProtector _protector;
+    public TenantsModel(MigrationDbContext db, PstMigration.Application.Abstractions.ISecretProtector protector)
+    {
+        _db = db;
+        _protector = protector;
+    }
 
     public IReadOnlyList<Tenant> Tenants { get; private set; } = Array.Empty<Tenant>();
     [TempData] public string? Message { get; set; }
@@ -21,7 +26,7 @@ public class TenantsModel : PageModel
         => Tenants = await _db.Tenants.Include(t => t.AppRegistration).OrderBy(t => t.Name).ToListAsync(ct);
 
     public async Task<IActionResult> OnPostCreateAsync(string name, string domain, string entraTenantId,
-        string clientId, string certThumbprint, string certLocation, CancellationToken ct)
+        string clientId, string? clientSecret, string? certThumbprint, string? certLocation, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(domain))
         {
@@ -42,8 +47,9 @@ public class TenantsModel : PageModel
         {
             TenantId = tenant.Id,
             ClientId = (clientId ?? "").Trim(),
+            ClientSecretEncrypted = string.IsNullOrWhiteSpace(clientSecret) ? null : _protector.Protect(clientSecret.Trim()),
             CertificateThumbprint = (certThumbprint ?? "").Trim(),
-            CertificateLocation = string.IsNullOrWhiteSpace(certLocation) ? "store:CurrentUser/My" : certLocation.Trim(),
+            CertificateLocation = string.IsNullOrWhiteSpace(certLocation) ? "" : certLocation.Trim(),
         });
         await _db.SaveChangesAsync(ct);
 
@@ -53,7 +59,7 @@ public class TenantsModel : PageModel
     }
 
     public async Task<IActionResult> OnPostUpdateAsync(Guid id, string name, string domain, string entraTenantId,
-        string clientId, string certThumbprint, string certLocation, CancellationToken ct)
+        string clientId, string? clientSecret, string? certThumbprint, string? certLocation, CancellationToken ct)
     {
         var tenant = await _db.Tenants.Include(t => t.AppRegistration).FirstOrDefaultAsync(t => t.Id == id, ct);
         if (tenant is null) return RedirectToPage();
@@ -64,7 +70,10 @@ public class TenantsModel : PageModel
         tenant.AppRegistration ??= new AppRegistration { TenantId = tenant.Id };
         tenant.AppRegistration.ClientId = (clientId ?? "").Trim();
         tenant.AppRegistration.CertificateThumbprint = (certThumbprint ?? "").Trim();
-        tenant.AppRegistration.CertificateLocation = string.IsNullOrWhiteSpace(certLocation) ? "store:CurrentUser/My" : certLocation.Trim();
+        tenant.AppRegistration.CertificateLocation = (certLocation ?? "").Trim();
+        // Only replace the secret when a new one is typed (blank = keep existing).
+        if (!string.IsNullOrWhiteSpace(clientSecret))
+            tenant.AppRegistration.ClientSecretEncrypted = _protector.Protect(clientSecret.Trim());
         if (_db.Entry(tenant.AppRegistration).State == EntityState.Detached)
             _db.AppRegistrations.Add(tenant.AppRegistration);
 

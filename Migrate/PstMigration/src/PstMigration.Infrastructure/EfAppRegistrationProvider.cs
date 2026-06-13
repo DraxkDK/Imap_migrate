@@ -4,12 +4,17 @@ using PstMigration.Infrastructure.Persistence;
 
 namespace PstMigration.Infrastructure;
 
-/// <summary>Reads app-registration details (for the Graph token broker) from the portal DB.</summary>
+/// <summary>Reads app-registration details from the portal DB, decrypting the client secret.</summary>
 public sealed class EfAppRegistrationProvider : IAppRegistrationProvider
 {
     private readonly MigrationDbContext _db;
+    private readonly ISecretProtector _protector;
 
-    public EfAppRegistrationProvider(MigrationDbContext db) => _db = db;
+    public EfAppRegistrationProvider(MigrationDbContext db, ISecretProtector protector)
+    {
+        _db = db;
+        _protector = protector;
+    }
 
     public async Task<AppRegistrationInfo?> GetAsync(Guid tenantId, CancellationToken cancellationToken)
     {
@@ -18,8 +23,17 @@ public sealed class EfAppRegistrationProvider : IAppRegistrationProvider
             .Join(_db.Tenants, r => r.TenantId, t => t.Id, (r, t) => new { r, t })
             .FirstOrDefaultAsync(x => x.t.Id == tenantId, cancellationToken);
 
-        return row is null
+        if (row is null) return null;
+
+        var secret = string.IsNullOrEmpty(row.r.ClientSecretEncrypted)
             ? null
-            : new AppRegistrationInfo(row.t.EntraTenantId, row.r.ClientId, row.r.CertificateThumbprint, row.r.CertificateLocation);
+            : _protector.Unprotect(row.r.ClientSecretEncrypted);
+
+        return new AppRegistrationInfo(
+            row.t.EntraTenantId,
+            row.r.ClientId,
+            secret,
+            row.r.CertificateThumbprint,
+            row.r.CertificateLocation);
     }
 }

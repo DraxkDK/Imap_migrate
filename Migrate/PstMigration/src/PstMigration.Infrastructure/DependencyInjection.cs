@@ -6,6 +6,7 @@ using PstMigration.Application.Abstractions;
 using PstMigration.Application.Services;
 using PstMigration.Graph;
 using PstMigration.Infrastructure.Persistence;
+using PstMigration.Infrastructure.Security;
 
 namespace PstMigration.Infrastructure;
 
@@ -20,6 +21,7 @@ public static class DependencyInjection
 
         services.AddDbContext<MigrationDbContext>(opt => opt.UseSqlite(connectionString));
 
+        services.AddSingleton<ISecretProtector, AesSecretProtector>();
         services.AddScoped<IAppRegistrationProvider, EfAppRegistrationProvider>();
         services.AddScoped<IGraphTokenBroker, CertificateGraphTokenBroker>();
         services.AddSingleton<IFolderNameNormalizer, FolderNameNormalizer>();

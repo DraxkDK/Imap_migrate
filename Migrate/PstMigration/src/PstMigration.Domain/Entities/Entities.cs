@@ -22,11 +22,16 @@ public class AppRegistration
     public Guid Id { get; set; } = Guid.NewGuid();
     public Guid TenantId { get; set; }
     public string ClientId { get; set; } = "";
+
+    // Credential option A — client secret (encrypted at rest).
+    public string? ClientSecretEncrypted { get; set; }
+
+    // Credential option B — certificate (more secure; private key stays on the portal).
     public string CertificateThumbprint { get; set; } = "";
     /// <summary>Where the portal loads the cert from: "store:CurrentUser/My" or "file:/path/cert.pfx".</summary>
     public string CertificateLocation { get; set; } = "";
-    /// <summary>DPAPI/secret-manager protected reference for the PFX password (never plaintext).</summary>
     public string? ProtectedCertPasswordRef { get; set; }
+
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 
     public Tenant? Tenant { get; set; }
