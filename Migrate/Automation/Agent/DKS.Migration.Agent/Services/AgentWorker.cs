@@ -604,30 +604,27 @@ public class AgentWorker : BackgroundService
                 var name = Path.GetFileName(pst);
                 await Log(_state.DeviceId, "GraphImport", "Info", $"Importing {name} -> {mailbox} ...");
 
-                // Read from a short-lived temp copy so we never hold a lock on the live PST —
-                // Outlook can stay open while the import runs. The copy opens the source with
-                // shared read/write, so even a PST currently mounted in Outlook can be copied.
-                string readPath = pst;
-                string? tempCopy = null;
-                try
-                {
-                    tempCopy = await CopyPstForReadAsync(pst, ct);
-                    readPath = tempCopy;
-                }
-                catch (Exception ex)
-                {
-                    await Log(_state.DeviceId, "GraphImport", "Warning",
-                        $"{name}: couldn't make a temp copy ({ex.Message}); reading the file directly — close Outlook if it has this PST open.");
-                }
-
                 var progress = new Progress<ImportProgress>(p =>
                 {
                     _logger.LogInformation("[{Pst}] {Summary}", name, p.Summary());
                     _ = _portal.LogAsync(_state.DeviceId, "GraphImport", "Info", $"{name}: {p.Summary()}");
                 });
+
+                // Copy the PST to a temp file (prompting the user to close Outlook if it has the PST
+                // locked), then import from the copy so the user can reopen Outlook immediately.
+                string? tempCopy = null;
                 try
                 {
-                    var (imp, fail, firstErr) = await importer.ImportPstAsync(readPath, mailbox, rootFolder, progress, ct);
+                    tempCopy = await CopyWithPromptAsync(pst, name, ct);
+                    if (tempCopy == null)
+                    {
+                        totalFailed++;
+                        await Log(_state.DeviceId, "GraphImport", "Error",
+                            $"{name}: Outlook vẫn giữ file PST sau khi chờ. Đóng Outlook rồi bấm Import lại.");
+                        continue;
+                    }
+
+                    var (imp, fail, firstErr) = await importer.ImportPstAsync(tempCopy, mailbox, rootFolder, progress, ct);
                     totalImported += imp; totalFailed += fail;
                     await Log(_state.DeviceId, "GraphImport", fail > 0 ? "Warning" : "Info",
                         $"{name}: {imp} imported, {fail} failed");
@@ -652,15 +649,81 @@ public class AgentWorker : BackgroundService
         await Log(_state.DeviceId, "GraphImport", "Info", $"Graph import complete: {totalImported} imported, {totalFailed} failed.");
     }
 
-    /// <summary>Copies a PST to a temp file, opening the source with shared read/write so it never
-    /// blocks Outlook. Returns the temp path; the caller deletes it when done.</summary>
+    /// <summary>Copies a PST to a temp file. If Outlook has it locked, shows a popup asking the user
+    /// to close Outlook (with an estimated time), waits until it's free, copies, then tells them they
+    /// can reopen Outlook. Returns the temp path, or null if it stays locked past the timeout.</summary>
+    private async Task<string?> CopyWithPromptAsync(string pst, string name, CancellationToken ct)
+    {
+        // Fast path: not locked → copy straight away, no popup.
+        try { return await CopyPstForReadAsync(pst, ct); }
+        catch (IOException) { /* locked by Outlook — prompt + wait below */ }
+
+        long size = 0;
+        try { size = new FileInfo(pst).Length; } catch { /* ignore */ }
+        var gb = size / 1024.0 / 1024 / 1024;
+        var estMin = Math.Max(1, (int)Math.Ceiling(size / 1_048_576.0 / 100.0 / 60.0));   // ~100 MB/s copy
+
+        await Log(_state!.DeviceId, "GraphImport", "Warning",
+            $"{name}: PST đang mở trong Outlook — đã yêu cầu người dùng đóng Outlook (~{estMin} phút).");
+        ShowPopup(
+            "Đang chuyển email sang Microsoft 365.\n\n" +
+            $"Vui lòng ĐÓNG Outlook để hệ thống sao lưu dữ liệu (~{estMin} phút cho {gb:F1} GB).\n\n" +
+            "Sao lưu xong sẽ có thông báo — lúc đó bạn MỞ LẠI Outlook bình thường, " +
+            "quá trình chuyển sẽ tiếp tục chạy nền.",
+            "DKS Migration — cần đóng Outlook");
+
+        var deadline = DateTime.UtcNow.AddMinutes(30);
+        while (DateTime.UtcNow < deadline)
+        {
+            ct.ThrowIfCancellationRequested();
+            await Task.Delay(3000, ct);
+            try
+            {
+                var temp = await CopyPstForReadAsync(pst, ct);
+                ShowPopup(
+                    "Sao lưu xong! Bạn có thể MỞ LẠI Outlook ngay bây giờ.\n\n" +
+                    "Quá trình chuyển email sẽ tiếp tục chạy nền.",
+                    "DKS Migration");
+                return temp;
+            }
+            catch (IOException) { /* still locked — keep waiting */ }
+        }
+        return null;
+    }
+
+    /// <summary>Copies a PST to a temp file, opening the source with shared read/write. Returns the
+    /// temp path; the caller deletes it when done. Throws IOException if Outlook has it locked.</summary>
     private static async Task<string> CopyPstForReadAsync(string sourcePath, CancellationToken ct)
     {
         var temp = Path.Combine(Path.GetTempPath(), $"dks-import-{Guid.NewGuid():N}.pst");
-        await using var src = new FileStream(sourcePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 1 << 20, useAsync: true);
-        await using var dst = new FileStream(temp, FileMode.Create, FileAccess.Write, FileShare.None, 1 << 20, useAsync: true);
-        await src.CopyToAsync(dst, 1 << 20, ct);
-        return temp;
+        try
+        {
+            await using var src = new FileStream(sourcePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 1 << 20, useAsync: true);
+            await using var dst = new FileStream(temp, FileMode.Create, FileAccess.Write, FileShare.None, 1 << 20, useAsync: true);
+            await src.CopyToAsync(dst, 1 << 20, ct);
+            return temp;
+        }
+        catch
+        {
+            try { if (File.Exists(temp)) File.Delete(temp); } catch { /* best effort */ }
+            throw;
+        }
+    }
+
+    [System.Runtime.InteropServices.DllImport("user32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
+    private static extern int MessageBoxW(IntPtr hWnd, string text, string caption, uint type);
+
+    /// <summary>Shows a non-blocking info popup on the user's desktop (agent runs interactively).</summary>
+    private static void ShowPopup(string text, string title)
+    {
+        try
+        {
+            // 0x40 MB_ICONINFORMATION | 0x10000 MB_SETFOREGROUND | 0x40000 MB_TOPMOST
+            var t = new System.Threading.Thread(() => MessageBoxW(IntPtr.Zero, text, title, 0x40 | 0x10000 | 0x40000))
+            { IsBackground = true };
+            t.Start();
+        }
+        catch { /* no interactive desktop — ignore */ }
     }
 
     private async Task UninstallSelfAsync()
