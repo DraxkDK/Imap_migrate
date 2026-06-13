@@ -22,6 +22,22 @@ public class DevicesController : Controller
         return View(await q.OrderByDescending(d => d.LastCheckIn).ToListAsync());
     }
 
+    /// <summary>Lightweight JSON of per-device import progress for the live dashboard poll.</summary>
+    [HttpGet]
+    public async Task<IActionResult> ProgressJson(int? batchId)
+    {
+        var q = _db.Devices.AsQueryable();
+        if (batchId.HasValue) q = q.Where(d => d.BatchId == batchId.Value);
+        var data = await q.Select(d => new
+        {
+            id = d.DeviceId,
+            percent = d.ImportPercent,
+            text = d.ImportStatusText,
+            status = d.CurrentStatus.ToString(),
+        }).ToListAsync();
+        return Json(data);
+    }
+
     public async Task<IActionResult> Details(int id)
     {
         var device = await _db.Devices

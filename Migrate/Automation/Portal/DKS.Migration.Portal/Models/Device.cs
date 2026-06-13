@@ -63,6 +63,12 @@ public class Device
     [MaxLength(100)]
     public string? PendingCommand { get; set; }
 
+    /// <summary>Live import progress (0–100) reported by the agent during a Graph import; null when idle.</summary>
+    public int? ImportPercent { get; set; }
+    /// <summary>One-line import status (items/s, MB/s, ETA) shown under the progress bar.</summary>
+    [MaxLength(300)]
+    public string? ImportStatusText { get; set; }
+
     public MigrationBatch? Batch { get; set; }
     public ICollection<PstFile> PstFiles { get; set; } = new List<PstFile>();
     public ICollection<DeviceLog> Logs { get; set; } = new List<DeviceLog>();

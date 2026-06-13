@@ -603,11 +603,13 @@ public class AgentWorker : BackgroundService
                 ct.ThrowIfCancellationRequested();
                 var name = Path.GetFileName(pst);
                 await Log(_state.DeviceId, "GraphImport", "Info", $"Importing {name} -> {mailbox} ...");
+                await _portal.ReportProgressAsync(_state.DeviceId, 0, $"{name}: starting…");
 
                 var progress = new Progress<ImportProgress>(p =>
                 {
                     _logger.LogInformation("[{Pst}] {Summary}", name, p.Summary());
                     _ = _portal.LogAsync(_state.DeviceId, "GraphImport", "Info", $"{name}: {p.Summary()}");
+                    _ = _portal.ReportProgressAsync(_state.DeviceId, (int)p.Percent, $"{name}: {p.Summary()}");
                 });
 
                 // Copy the PST to a temp file (prompting the user to close Outlook if it has the PST

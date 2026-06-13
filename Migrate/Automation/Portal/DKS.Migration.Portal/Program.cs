@@ -88,6 +88,10 @@ using (var scope = app.Services.CreateScope())
         catch { /* column already exists */ }
     }
 
+    // Add the live import-progress columns to Devices on pre-existing DBs.
+    try { db.Database.ExecuteSqlRaw("ALTER TABLE \"Devices\" ADD COLUMN \"ImportPercent\" INTEGER NULL"); } catch { }
+    try { db.Database.ExecuteSqlRaw("ALTER TABLE \"Devices\" ADD COLUMN \"ImportStatusText\" TEXT NULL"); } catch { }
+
     // Seed a first admin if none exist. Override via env PORTAL_ADMIN_USER /
     // PORTAL_ADMIN_PASSWORD. Change the password right after first login.
     if (!db.PortalUsers.Any())

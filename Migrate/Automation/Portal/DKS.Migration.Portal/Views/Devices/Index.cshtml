@@ -26,7 +26,7 @@
         <table class="table table-hover mb-0">
             <thead><tr>
                 <th style="width:32px"><input type="checkbox" onclick="document.querySelectorAll('.dev-chk').forEach(c=>c.checked=this.checked)" /></th>
-                <th>Computer</th><th>User</th><th>Batch</th><th>Outlook</th><th>PST Count</th><th>Status</th><th>Last Check-in</th><th>Error</th><th></th>
+                <th>Computer</th><th>User</th><th>Batch</th><th>Outlook</th><th>PST Count</th><th>Status</th><th>Progress</th><th>Last Check-in</th><th>Error</th><th></th>
             </tr></thead>
             <tbody>
             @foreach (var d in Model)
@@ -44,6 +44,13 @@
                     <td class="small">@d.OutlookVersion</td>
                     <td><span class="badge bg-light text-dark border">@d.PstCount</span></td>
                     <td><span class="badge @sCls" style="font-size:11px">@d.CurrentStatus</span></td>
+                    <td style="min-width:150px">
+                        <div id="prog-@d.DeviceId" class="progress" style="height:15px;@(d.ImportPercent.HasValue ? "" : "display:none")">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated bg-info" role="progressbar"
+                                 style="width:@(d.ImportPercent ?? 0)%; font-size:10px;">@(d.ImportPercent ?? 0)%</div>
+                        </div>
+                        <div id="progtext-@d.DeviceId" class="text-muted text-truncate" style="font-size:10px;max-width:150px" title="@d.ImportStatusText">@d.ImportStatusText</div>
+                    </td>
                     <td class="text-muted small text-nowrap">@d.LastCheckIn?.ToString("MM-dd HH:mm")</td>
                     <td class="text-danger small text-truncate" style="max-width:150px" title="@d.ErrorMessage">@d.ErrorMessage</td>
                     <td><a asp-action="Details" asp-route-id="@d.DeviceId" class="btn btn-xs btn-outline-secondary">Detail</a></td>
@@ -51,7 +58,7 @@
             }
             @if (!Model.Any())
             {
-                <tr><td colspan="10" class="text-center text-muted py-4">No devices found. Install the agent on user machines.</td></tr>
+                <tr><td colspan="11" class="text-center text-muted py-4">No devices found. Install the agent on user machines.</td></tr>
             }
             </tbody>
         </table>
@@ -63,3 +70,31 @@
 <form id="filterForm" method="get">
     @if (ViewBag.BatchId != null) { <input type="hidden" name="batchId" value="@ViewBag.BatchId" /> }
 </form>
+
+@* Live progress: poll every 4s and update each device's bar without a full reload. *@
+<script>
+    (function () {
+        var url = '@Url.Action("ProgressJson")' + (@(ViewBag.BatchId != null ? "true" : "false") ? '?batchId=@ViewBag.BatchId' : '');
+        async function tick() {
+            try {
+                var r = await fetch(url, { headers: { 'X-Requested-With': 'fetch' } });
+                if (!r.ok) return;
+                var list = await r.json();
+                list.forEach(function (d) {
+                    var wrap = document.getElementById('prog-' + d.id);
+                    var txt = document.getElementById('progtext-' + d.id);
+                    if (!wrap) return;
+                    if (d.percent === null || d.percent === undefined) { wrap.style.display = 'none'; if (txt) txt.textContent = ''; return; }
+                    wrap.style.display = '';
+                    var bar = wrap.querySelector('.progress-bar');
+                    bar.style.width = d.percent + '%';
+                    bar.textContent = d.percent + '%';
+                    if (d.percent >= 100) { bar.classList.remove('progress-bar-animated'); bar.classList.remove('bg-info'); bar.classList.add('bg-success'); }
+                    if (txt) { txt.textContent = d.text || ''; txt.title = d.text || ''; }
+                });
+            } catch (e) { /* ignore */ }
+        }
+        setInterval(tick, 4000);
+        tick();
+    })();
+</script>

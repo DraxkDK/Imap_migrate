@@ -170,6 +170,19 @@ public class AgentApiController : ControllerBase
         return Ok(new { logId = log.LogId });
     }
 
+    // POST /api/agent/progress — live import progress for the Devices dashboard.
+    [HttpPost("progress")]
+    public async Task<IActionResult> Progress([FromBody] ProgressRequest req)
+    {
+        var device = await _db.Devices.FindAsync(req.DeviceId);
+        if (device == null) return NotFound();
+        device.ImportPercent = Math.Clamp(req.Percent, 0, 100);
+        device.ImportStatusText = req.Text;
+        device.LastCheckIn = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+        return Ok(new { ok = true });
+    }
+
     // POST /api/agent/pst
     [HttpPost("pst")]
     public async Task<IActionResult> ReportPst([FromBody] PstReportRequest req)
@@ -233,3 +246,4 @@ public record RegisterRequest(string AgentToken, string ComputerName, string? Wi
 public record CheckInRequest(int DeviceId, DeviceStatus Status, string? OutlookVersion, string? CurrentProfile, string? OldAccountType, string? OldEmail, string? NewMailbox, string? ErrorMessage);
 public record LogRequest(int DeviceId, string? Step, DKS.Migration.Portal.Models.LogLevel Level, string Message);
 public record PstReportRequest(int DeviceId, string SourcePath, string? BackupPath, long SizeBytes, string? Sha256, PstExportStatus ExportStatus, PstImportStatus ImportStatus);
+public record ProgressRequest(int DeviceId, int Percent, string? Text);

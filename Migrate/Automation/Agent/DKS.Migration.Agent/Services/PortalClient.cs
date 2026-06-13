@@ -120,6 +120,16 @@ public class PortalClient
         catch { /* best effort */ }
     }
 
+    /// <summary>Reports live import progress (0–100 + a one-line summary) for the portal dashboard.</summary>
+    public async Task ReportProgressAsync(int deviceId, int percent, string? text)
+    {
+        try
+        {
+            await _http.PostAsJsonAsync("progress", new { deviceId, percent, text });
+        }
+        catch { /* best effort */ }
+    }
+
     public async Task ReportPstAsync(int deviceId, PstFileInfo pst, string exportStatus, string importStatus)
     {
         try
