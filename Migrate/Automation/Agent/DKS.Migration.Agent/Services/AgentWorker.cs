@@ -595,7 +595,7 @@ public class AgentWorker : BackgroundService
         await _portal.CheckInAsync(_state.DeviceId, "ImportingToM365");
         var rootFolder = string.IsNullOrWhiteSpace(_state.ImportTargetFolder) ? "Imported PST" : _state.ImportTargetFolder!.TrimStart('/');
 
-        int totalImported = 0, totalFailed = 0;
+        int totalImported = 0, totalFailed = 0, totalSkipped = 0;
         using (var importer = new GraphImporter(token, _logger))
         {
             foreach (var pst in psts.Distinct())
@@ -624,10 +624,10 @@ public class AgentWorker : BackgroundService
                         continue;
                     }
 
-                    var (imp, fail, firstErr) = await importer.ImportPstAsync(tempCopy, mailbox, rootFolder, progress, ct);
-                    totalImported += imp; totalFailed += fail;
+                    var (imp, fail, skip, firstErr) = await importer.ImportPstAsync(tempCopy, mailbox, rootFolder, progress, ct);
+                    totalImported += imp; totalFailed += fail; totalSkipped += skip;
                     await Log(_state.DeviceId, "GraphImport", fail > 0 ? "Warning" : "Info",
-                        $"{name}: {imp} imported, {fail} failed");
+                        $"{name}: {imp} imported, {skip} skipped (already there), {fail} failed");
                     if (fail > 0 && firstErr != null)
                         await Log(_state.DeviceId, "GraphImport", "Error", $"{name} first failure: {firstErr}");
                 }
@@ -646,7 +646,7 @@ public class AgentWorker : BackgroundService
 
         _state.CurrentStep = totalFailed > 0 ? "CompletedWithWarning" : "Completed";
         await _portal.CheckInAsync(_state.DeviceId, _state.CurrentStep);
-        await Log(_state.DeviceId, "GraphImport", "Info", $"Graph import complete: {totalImported} imported, {totalFailed} failed.");
+        await Log(_state.DeviceId, "GraphImport", "Info", $"Graph import complete: {totalImported} imported, {totalSkipped} skipped, {totalFailed} failed.");
     }
 
     /// <summary>Copies a PST to a temp file. If Outlook has it locked, shows a popup asking the user

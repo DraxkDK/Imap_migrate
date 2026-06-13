@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using XstReader;
@@ -31,10 +32,10 @@ public sealed class GraphImporter : IDisposable
         _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
     }
 
-    public async Task<(int Imported, int Failed, string? FirstError)> ImportPstAsync(string pstPath, string mailbox, string rootFolderName,
+    public async Task<(int Imported, int Failed, int Skipped, string? FirstError)> ImportPstAsync(string pstPath, string mailbox, string rootFolderName,
         IProgress<ImportProgress>? progress, CancellationToken ct)
     {
-        int imported = 0, failed = 0, total = 0;
+        int imported = 0, failed = 0, skipped = 0, total = 0;
         string? firstError = null;
         long bytesSent = 0;
         var sw = System.Diagnostics.Stopwatch.StartNew();
@@ -54,26 +55,74 @@ public sealed class GraphImporter : IDisposable
         foreach (var folder in EnumerateFolders(xst.RootFolder))
         {
             var destId = map[folder.Path];
+            // Dedup: pre-load the keys already present in this folder so re-runs only add new mail.
+            var seen = await GetExistingKeysAsync(mailbox, destId, ct);
             foreach (var msg in folder.Messages)
             {
                 ct.ThrowIfCancellationRequested();
-                try { bytesSent += await CreateMessageAsync(mailbox, destId, msg, ct); imported++; }
-                catch (Exception ex)
+                var key = DedupKey(msg);
+                if (!seen.Add(key))   // already imported (or a duplicate within this PST) → skip
                 {
-                    failed++;
-                    firstError ??= $"'{msg.Subject}' → {ex.Message}";
-                    _logger.LogWarning("Import failed for '{Subject}': {Err}", msg.Subject, ex.Message);
+                    skipped++;
+                }
+                else
+                {
+                    try { bytesSent += await CreateMessageAsync(mailbox, destId, msg, key, ct); imported++; }
+                    catch (Exception ex)
+                    {
+                        failed++;
+                        firstError ??= $"'{msg.Subject}' → {ex.Message}";
+                        _logger.LogWarning("Import failed for '{Subject}': {Err}", msg.Subject, ex.Message);
+                    }
                 }
 
                 if (progress is not null && sw.Elapsed - lastReport >= TimeSpan.FromSeconds(5))
                 {
                     lastReport = sw.Elapsed;
-                    progress.Report(new ImportProgress(imported, failed, total, bytesSent, sw.Elapsed));
+                    progress.Report(new ImportProgress(imported, failed, skipped, total, bytesSent, sw.Elapsed));
                 }
             }
         }
-        progress?.Report(new ImportProgress(imported, failed, total, bytesSent, sw.Elapsed));
-        return (imported, failed, firstError);
+        progress?.Report(new ImportProgress(imported, failed, skipped, total, bytesSent, sw.Elapsed));
+        return (imported, failed, skipped, firstError);
+    }
+
+    /// <summary>A stable per-message key for idempotent re-imports: the original Internet Message-ID
+    /// when present, else a deterministic hash of subject + dates + sender + body length.</summary>
+    private static string DedupKey(XstMessage msg)
+    {
+        var mid = msg.InternetMessageId?.Trim();
+        if (!string.IsNullOrEmpty(mid)) return mid;
+
+        var raw = string.Join("",
+            msg.Subject ?? "",
+            msg.SubmittedTime?.ToUniversalTime().Ticks.ToString() ?? "",
+            msg.ReceivedTime?.ToUniversalTime().Ticks.ToString() ?? "",
+            msg.Recipients?.Sender?.Address ?? msg.From ?? "",
+            (msg.Body?.Text?.Length ?? 0).ToString());
+        var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(raw)));
+        return $"<{hash}@dks-import.local>";
+    }
+
+    /// <summary>Reads the internetMessageId of every message already in a folder (paged) so we can
+    /// skip re-importing them. Best-effort: on a listing error it returns what it has.</summary>
+    private async Task<HashSet<string>> GetExistingKeysAsync(string mailbox, string folderId, CancellationToken ct)
+    {
+        var set = new HashSet<string>(StringComparer.Ordinal);
+        string? url = $"users/{Uri.EscapeDataString(mailbox)}/mailFolders/{folderId}/messages?$select=internetMessageId&$top=100";
+        while (url is not null)
+        {
+            var next = url;
+            using var resp = await SendAsync(() => new HttpRequestMessage(HttpMethod.Get, next), ct);
+            if (!resp.IsSuccessStatusCode) break;
+            using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync(ct));
+            if (doc.RootElement.TryGetProperty("value", out var arr))
+                foreach (var el in arr.EnumerateArray())
+                    if (el.TryGetProperty("internetMessageId", out var mid) && mid.GetString() is { Length: > 0 } s)
+                        set.Add(s);
+            url = doc.RootElement.TryGetProperty("@odata.nextLink", out var nl) ? nl.GetString() : null;
+        }
+        return set;
     }
 
     private async Task<string> EnsureFolderAsync(string mailbox, string? parentId, string name, CancellationToken ct)
@@ -101,7 +150,7 @@ public sealed class GraphImporter : IDisposable
         return cdoc.RootElement.GetProperty("id").GetString()!;
     }
 
-    private async Task<long> CreateMessageAsync(string mailbox, string folderId, XstMessage msg, CancellationToken ct)
+    private async Task<long> CreateMessageAsync(string mailbox, string folderId, XstMessage msg, string dedupKey, CancellationToken ct)
     {
         var html = msg.Body is { } b && string.Equals(b.Format.ToString(), "Html", StringComparison.OrdinalIgnoreCase) ? b.Text : null;
         var text = html is null ? msg.Body?.Text : null;
@@ -122,6 +171,9 @@ public sealed class GraphImporter : IDisposable
         var svep = new List<object>
         {
             new { id = "Integer 0x0E07", value = (msg.IsRead ? 1 : 0).ToString() },
+            // PR_INTERNET_MESSAGE_ID (String 0x1035): the dedup key, surfaced as internetMessageId so
+            // a re-run can detect and skip this message instead of importing a duplicate.
+            new { id = "String 0x1035", value = dedupKey },
         };
         if (msg.ReceivedTime is { } rt)
             svep.Add(new { id = "SystemTime 0x0E06", value = rt.ToUniversalTime().ToString("o") });
@@ -279,23 +331,27 @@ public sealed class GraphImporter : IDisposable
 }
 
 /// <summary>Throughput snapshot reported during an import (items/s, MB/s, % done, ETA).</summary>
-public readonly record struct ImportProgress(int Imported, int Failed, int Total, long BytesSent, TimeSpan Elapsed)
+public readonly record struct ImportProgress(int Imported, int Failed, int Skipped, int Total, long BytesSent, TimeSpan Elapsed)
 {
     public double ItemsPerSec => Elapsed.TotalSeconds > 0 ? Imported / Elapsed.TotalSeconds : 0;
     public double MBPerSec => Elapsed.TotalSeconds > 0 ? BytesSent / 1_048_576.0 / Elapsed.TotalSeconds : 0;
-    public double Percent => Total > 0 ? (Imported + Failed) * 100.0 / Total : 0;
+    public int Done => Imported + Failed + Skipped;
+    public double Percent => Total > 0 ? Done * 100.0 / Total : 0;
     public TimeSpan Eta
     {
         get
         {
-            var done = Imported + Failed;
-            if (done <= 0 || Total <= done) return TimeSpan.Zero;
-            var perItem = Elapsed.TotalSeconds / done;
-            return TimeSpan.FromSeconds(perItem * (Total - done));
+            if (Done <= 0 || Total <= Done) return TimeSpan.Zero;
+            var perItem = Elapsed.TotalSeconds / Done;
+            return TimeSpan.FromSeconds(perItem * (Total - Done));
         }
     }
 
-    public string Summary() => Total > 0
-        ? $"{Imported}/{Total} ({Percent:F0}%) — {ItemsPerSec:F1} items/s, {MBPerSec:F2} MB/s, {BytesSent / 1_048_576.0:F1} MB, ETA {Eta:hh\\:mm\\:ss}"
-        : $"{Imported} items — {ItemsPerSec:F1} items/s, {MBPerSec:F2} MB/s, {BytesSent / 1_048_576.0:F1} MB";
+    public string Summary()
+    {
+        var skip = Skipped > 0 ? $", {Skipped} skipped" : "";
+        return Total > 0
+            ? $"{Done}/{Total} ({Percent:F0}%) — {ItemsPerSec:F1} items/s, {MBPerSec:F2} MB/s, {BytesSent / 1_048_576.0:F1} MB{skip}, ETA {Eta:hh\\:mm\\:ss}"
+            : $"{Imported} imported{skip} — {ItemsPerSec:F1} items/s, {MBPerSec:F2} MB/s, {BytesSent / 1_048_576.0:F1} MB";
+    }
 }
