@@ -114,9 +114,16 @@ public sealed class GraphImporter : IDisposable
         var mime = TryBuildMime(msg, html, text);
         if (mime is not null && mime.LongLength <= MimeLimit)
         {
+            var b64 = Convert.ToBase64String(mime);
             using var resp = await SendAsync(() =>
-                new HttpRequestMessage(HttpMethod.Post, $"users/{Uri.EscapeDataString(mailbox)}/mailFolders/{folderId}/messages")
-                { Content = new StringContent(Convert.ToBase64String(mime), Encoding.UTF8, "text/plain") }, ct);
+            {
+                var req = new HttpRequestMessage(HttpMethod.Post, $"users/{Uri.EscapeDataString(mailbox)}/mailFolders/{folderId}/messages");
+                req.Content = new StringContent(b64);
+                // Graph treats the POST as MIME import only when Content-Type is exactly "text/plain"
+                // (a charset suffix makes it fall back to JSON → UnableToDeserializePostBody).
+                req.Content.Headers.ContentType = new MediaTypeHeaderValue("text/plain");
+                return req;
+            }, ct);
             await EnsureGraphSuccessAsync(resp, $"Import '{msg.Subject}'", ct);
             return mime.LongLength;
         }
