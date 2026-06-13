@@ -96,6 +96,7 @@
                     <span class="badge bg-secondary">@(User.IsInRole("Admin") ? "Admin" : User.IsInRole("Operator") ? "Operator" : "Viewer")</span>
                 </span>
                 <a class="small" asp-controller="Account" asp-action="Password">Password</a>
+                <a class="small" asp-controller="Account" asp-action="Mfa">MFA</a>
                 <form method="post" asp-controller="Account" asp-action="Logout" class="d-inline">
                     @Html.AntiForgeryToken()
                     <button type="submit" class="btn btn-sm btn-outline-secondary btn-xs">Sign out</button>

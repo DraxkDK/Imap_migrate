@@ -1,0 +1,48 @@
+@{
+    ViewData["Title"] = "Two-factor verification";
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Verify — DKS Migration Portal</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <style>
+        body { background: #0f172a; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+        .login-card { width: 360px; background: #fff; border-radius: 10px; padding: 28px; box-shadow: 0 10px 30px rgba(0,0,0,.4); }
+        .login-card h1 { font-size: 18px; font-weight: 700; color: #1e293b; margin-bottom: 2px; }
+        .login-card .sub { font-size: 12px; color: #64748b; margin-bottom: 18px; }
+        .code-input { letter-spacing: .4em; text-align: center; font-size: 20px; }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <h1>Xác thực 2 lớp</h1>
+        <div class="sub">Nhập mã 6 số từ ứng dụng Authenticator của bạn.</div>
+
+        @if (!ViewData.ModelState.IsValid)
+        {
+            <div class="alert alert-danger py-2 small">
+                @foreach (var e in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                {
+                    <div>@e.ErrorMessage</div>
+                }
+            </div>
+        }
+
+        <form method="post" asp-action="Verify">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="returnUrl" value="@ViewBag.ReturnUrl" />
+            <div class="mb-3">
+                <label class="form-label small">Mã xác thực</label>
+                <input name="code" class="form-control code-input" inputmode="numeric" pattern="[0-9]*"
+                       maxlength="6" autocomplete="one-time-code" autofocus required />
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Xác nhận</button>
+            <a asp-action="Login" class="btn btn-link w-100 mt-2 small">Quay lại đăng nhập</a>
+        </form>
+    </div>
+</body>
+</html>

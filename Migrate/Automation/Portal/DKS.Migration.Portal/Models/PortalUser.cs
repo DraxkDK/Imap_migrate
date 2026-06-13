@@ -13,6 +13,11 @@ public class PortalUser
     public bool IsActive { get; set; } = true;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? LastLogin { get; set; }
+
+    /// <summary>Base32 TOTP secret (set during enrolment). Null until MFA is set up.</summary>
+    public string? TotpSecret { get; set; }
+    /// <summary>True once the user has confirmed a code and MFA is required at login.</summary>
+    public bool TotpEnabled { get; set; }
 }
 
 public static class PortalRoles

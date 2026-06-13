@@ -74,6 +74,13 @@ using (var scope = app.Services.CreateScope())
     db.Database.ExecuteSqlRaw(
         @"CREATE UNIQUE INDEX IF NOT EXISTS ""IX_PortalUsers_Username"" ON ""PortalUsers"" (""Username"");");
 
+    // Add the MFA (TOTP) columns to PortalUsers on pre-existing DBs.
+    foreach (var col in new[] { ("TotpSecret", "TEXT"), ("TotpEnabled", "INTEGER NOT NULL DEFAULT 0") })
+    {
+        try { db.Database.ExecuteSqlRaw($"ALTER TABLE \"PortalUsers\" ADD COLUMN \"{col.Item1}\" {col.Item2}"); }
+        catch { /* column already exists */ }
+    }
+
     // Add the Graph app-registration columns to Customers on pre-existing DBs.
     foreach (var col in new[] { "EntraTenantId", "GraphClientId", "ClientSecretEncrypted", "CertThumbprint", "CertLocation" })
     {
