@@ -116,7 +116,7 @@ public sealed class GraphImporter : IDisposable
         var body = new Dictionary<string, object?>
         {
             ["subject"] = msg.Subject,
-            ["importance"] = msg.Importance?.ToString().ToLowerInvariant() ?? "normal",
+            ["importance"] = MapImportance(msg.Importance),
             ["isRead"] = msg.IsRead,
             ["body"] = new { contentType = html is not null ? "HTML" : "Text", content = html ?? text ?? "" },
             ["toRecipients"] = Recipients(msg.Recipients?.To),
@@ -209,6 +209,15 @@ public sealed class GraphImporter : IDisposable
             ? " (403 → grant the app the APPLICATION permission Mail.ReadWrite + admin consent, and make sure the target is a licensed Exchange Online mailbox in THIS tenant)"
             : "";
         throw new HttpRequestException($"{operation} → {(int)resp.StatusCode} {resp.StatusCode}. {detail}{hint}");
+    }
+
+    /// <summary>Maps an XstReader importance (e.g. "NormalImportance") to a Graph value: low|normal|high.</summary>
+    private static string MapImportance(object? importance)
+    {
+        var s = importance?.ToString()?.ToLowerInvariant() ?? "";
+        if (s.Contains("low")) return "low";
+        if (s.Contains("high")) return "high";
+        return "normal";
     }
 
     private static object[] Recipients(IEnumerable<XstRecipient>? recipients)
