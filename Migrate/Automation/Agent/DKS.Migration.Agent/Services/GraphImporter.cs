@@ -115,16 +115,23 @@ public sealed class GraphImporter : IDisposable
         if (mime is not null && mime.LongLength <= MimeLimit)
         {
             var b64 = Convert.ToBase64String(mime);
+            // MIME import is supported on /messages (not the folder-scoped endpoint). Content-Type
+            // must be exactly "text/plain" (a charset suffix → JSON parse → UnableToDeserializePostBody).
             using var resp = await SendAsync(() =>
             {
-                var req = new HttpRequestMessage(HttpMethod.Post, $"users/{Uri.EscapeDataString(mailbox)}/mailFolders/{folderId}/messages");
+                var req = new HttpRequestMessage(HttpMethod.Post, $"users/{Uri.EscapeDataString(mailbox)}/messages");
                 req.Content = new StringContent(b64);
-                // Graph treats the POST as MIME import only when Content-Type is exactly "text/plain"
-                // (a charset suffix makes it fall back to JSON → UnableToDeserializePostBody).
                 req.Content.Headers.ContentType = new MediaTypeHeaderValue("text/plain");
                 return req;
             }, ct);
             await EnsureGraphSuccessAsync(resp, $"Import '{msg.Subject}'", ct);
+
+            // Move the imported message into the destination folder.
+            using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync(ct));
+            var id = doc.RootElement.GetProperty("id").GetString()!;
+            using var mv = await SendAsync(() => JsonReq(HttpMethod.Post,
+                $"users/{Uri.EscapeDataString(mailbox)}/messages/{id}/move", new { destinationId = folderId }), ct);
+            await EnsureGraphSuccessAsync(mv, $"Move '{msg.Subject}' to folder", ct);
             return mime.LongLength;
         }
 
