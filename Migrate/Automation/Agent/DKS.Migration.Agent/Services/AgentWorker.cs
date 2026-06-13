@@ -601,8 +601,25 @@ public class AgentWorker : BackgroundService
             foreach (var pst in psts.Distinct())
             {
                 ct.ThrowIfCancellationRequested();
-                await Log(_state.DeviceId, "GraphImport", "Info", $"Importing {Path.GetFileName(pst)} -> {mailbox} ...");
                 var name = Path.GetFileName(pst);
+                await Log(_state.DeviceId, "GraphImport", "Info", $"Importing {name} -> {mailbox} ...");
+
+                // Read from a short-lived temp copy so we never hold a lock on the live PST —
+                // Outlook can stay open while the import runs. The copy opens the source with
+                // shared read/write, so even a PST currently mounted in Outlook can be copied.
+                string readPath = pst;
+                string? tempCopy = null;
+                try
+                {
+                    tempCopy = await CopyPstForReadAsync(pst, ct);
+                    readPath = tempCopy;
+                }
+                catch (Exception ex)
+                {
+                    await Log(_state.DeviceId, "GraphImport", "Warning",
+                        $"{name}: couldn't make a temp copy ({ex.Message}); reading the file directly — close Outlook if it has this PST open.");
+                }
+
                 var progress = new Progress<ImportProgress>(p =>
                 {
                     _logger.LogInformation("[{Pst}] {Summary}", name, p.Summary());
@@ -610,17 +627,22 @@ public class AgentWorker : BackgroundService
                 });
                 try
                 {
-                    var (imp, fail, firstErr) = await importer.ImportPstAsync(pst, mailbox, rootFolder, progress, ct);
+                    var (imp, fail, firstErr) = await importer.ImportPstAsync(readPath, mailbox, rootFolder, progress, ct);
                     totalImported += imp; totalFailed += fail;
                     await Log(_state.DeviceId, "GraphImport", fail > 0 ? "Warning" : "Info",
-                        $"{Path.GetFileName(pst)}: {imp} imported, {fail} failed");
+                        $"{name}: {imp} imported, {fail} failed");
                     if (fail > 0 && firstErr != null)
                         await Log(_state.DeviceId, "GraphImport", "Error", $"{name} first failure: {firstErr}");
                 }
                 catch (Exception ex)
                 {
                     totalFailed++;
-                    await Log(_state.DeviceId, "GraphImport", "Error", $"{Path.GetFileName(pst)} failed: {ex.Message}");
+                    await Log(_state.DeviceId, "GraphImport", "Error", $"{name} failed: {ex.Message}");
+                }
+                finally
+                {
+                    if (tempCopy != null)
+                        try { File.Delete(tempCopy); } catch { /* best effort */ }
                 }
             }
         }
@@ -628,6 +650,17 @@ public class AgentWorker : BackgroundService
         _state.CurrentStep = totalFailed > 0 ? "CompletedWithWarning" : "Completed";
         await _portal.CheckInAsync(_state.DeviceId, _state.CurrentStep);
         await Log(_state.DeviceId, "GraphImport", "Info", $"Graph import complete: {totalImported} imported, {totalFailed} failed.");
+    }
+
+    /// <summary>Copies a PST to a temp file, opening the source with shared read/write so it never
+    /// blocks Outlook. Returns the temp path; the caller deletes it when done.</summary>
+    private static async Task<string> CopyPstForReadAsync(string sourcePath, CancellationToken ct)
+    {
+        var temp = Path.Combine(Path.GetTempPath(), $"dks-import-{Guid.NewGuid():N}.pst");
+        await using var src = new FileStream(sourcePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 1 << 20, useAsync: true);
+        await using var dst = new FileStream(temp, FileMode.Create, FileAccess.Write, FileShare.None, 1 << 20, useAsync: true);
+        await src.CopyToAsync(dst, 1 << 20, ct);
+        return temp;
     }
 
     private async Task UninstallSelfAsync()
