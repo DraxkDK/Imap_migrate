@@ -1,4 +1,0 @@
-C:\Users\ThanhPV\Documents\GitHub\Imap_migrate\Imap_migrate\Migrate\Automation\Agent\publish\appsettings.Development.json
-C:\Users\ThanhPV\Documents\GitHub\Imap_migrate\Imap_migrate\Migrate\Automation\Agent\publish\appsettings.json
-C:\Users\ThanhPV\Documents\GitHub\Imap_migrate\Imap_migrate\Migrate\Automation\Agent\publish\DKSProfileAgent.pdb
-C:\Users\ThanhPV\Documents\GitHub\Imap_migrate\Imap_migrate\Migrate\Automation\Agent\publish\DKSProfileAgent.exe
