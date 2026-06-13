@@ -3,7 +3,6 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
-using MimeKit;
 using XstReader;
 
 namespace DKS.Migration.Agent.Services;
@@ -17,7 +16,6 @@ public sealed class GraphImporter : IDisposable
 {
     private const long InlineLimit = 3 * 1024 * 1024;   // 3 MB
     private const int ChunkSize = 4 * 1024 * 1024;      // 4 MB
-    private const long MimeLimit = 3 * 1024 * 1024;     // raw MIME cap; base64 (~1.33x) stays under Graph's 4 MB request limit
     private static readonly JsonSerializerOptions Json = new()
     {
         DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
@@ -108,86 +106,6 @@ public sealed class GraphImporter : IDisposable
         var html = msg.Body is { } b && string.Equals(b.Format.ToString(), "Html", StringComparison.OrdinalIgnoreCase) ? b.Text : null;
         var text = html is null ? msg.Body?.Text : null;
 
-        // Preferred path: import as MIME (RFC 822). Graph creates a real, non-draft message
-        // that keeps the original date, sender, recipients and structure. The MIME request is
-        // capped near 4 MB, so big messages fall back to the field-by-field JSON path.
-        var mime = TryBuildMime(msg, html, text);
-        if (mime is not null && mime.LongLength <= MimeLimit)
-        {
-            var b64 = Convert.ToBase64String(mime);
-            // MIME import is supported on /messages (not the folder-scoped endpoint). Content-Type
-            // must be exactly "text/plain" (a charset suffix → JSON parse → UnableToDeserializePostBody).
-            using var resp = await SendAsync(() =>
-            {
-                var req = new HttpRequestMessage(HttpMethod.Post, $"users/{Uri.EscapeDataString(mailbox)}/messages");
-                req.Content = new StringContent(b64);
-                req.Content.Headers.ContentType = new MediaTypeHeaderValue("text/plain");
-                return req;
-            }, ct);
-            await EnsureGraphSuccessAsync(resp, $"Import '{msg.Subject}'", ct);
-
-            // Move the imported message into the destination folder.
-            using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync(ct));
-            var id = doc.RootElement.GetProperty("id").GetString()!;
-            using var mv = await SendAsync(() => JsonReq(HttpMethod.Post,
-                $"users/{Uri.EscapeDataString(mailbox)}/messages/{id}/move", new { destinationId = folderId }), ct);
-            await EnsureGraphSuccessAsync(mv, $"Move '{msg.Subject}' to folder", ct);
-            return mime.LongLength;
-        }
-
-        return await CreateMessageJsonAsync(mailbox, folderId, msg, html, text, ct);
-    }
-
-    /// <summary>Builds an RFC 822 MIME message from a PST item, or null if it can't be built.</summary>
-    private byte[]? TryBuildMime(XstMessage msg, string? html, string? text)
-    {
-        try
-        {
-            var mime = new MimeMessage();
-            var sender = msg.Recipients?.Sender;
-            mime.From.Add(TryAddr(sender?.DisplayName, sender?.Address) ?? new MailboxAddress("", "no-sender@import.invalid"));
-            AddAddrs(mime.To, msg.Recipients?.To);
-            AddAddrs(mime.Cc, msg.Recipients?.Cc);
-            if (mime.To.Count == 0) mime.To.Add(new MailboxAddress("", "no-recipient@import.invalid"));
-
-            mime.Subject = msg.Subject ?? "";
-            var when = msg.SubmittedTime ?? msg.ReceivedTime;
-            if (when is { } w) mime.Date = new DateTimeOffset(DateTime.SpecifyKind(w.ToUniversalTime(), DateTimeKind.Utc));
-            mime.Importance = MapImportance(msg.Importance) switch
-            {
-                "high" => MessageImportance.High,
-                "low" => MessageImportance.Low,
-                _ => MessageImportance.Normal,
-            };
-
-            var builder = new BodyBuilder();
-            if (html is not null) builder.HtmlBody = html;
-            if (text is not null || html is null) builder.TextBody = text ?? "";
-            foreach (var a in msg.AttachmentsFiles)
-            {
-                using var ms = new MemoryStream();
-                a.SaveToStream(ms);
-                var part = builder.Attachments.Add(a.LongFileName ?? a.FileName ?? "attachment.bin", ms.ToArray());
-                if (a.IsInlineAttachment && !string.IsNullOrEmpty(a.ContentId))
-                    part.ContentId = a.ContentId;
-            }
-            mime.Body = builder.ToMessageBody();
-
-            using var outMs = new MemoryStream();
-            mime.WriteTo(outMs);
-            return outMs.ToArray();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning("MIME build failed for '{Subject}', using JSON fallback: {Err}", msg.Subject, ex.Message);
-            return null;
-        }
-    }
-
-    /// <summary>Fallback: build the message field-by-field (used for large messages or if MIME build fails).
-    /// Note: Graph creates these as drafts, so it's lower fidelity than the MIME path.</summary>
-    private async Task<long> CreateMessageJsonAsync(string mailbox, string folderId, XstMessage msg, string? html, string? text, CancellationToken ct)
-    {
         var small = new List<XstAttachment>();
         var large = new List<XstAttachment>();
         foreach (var a in msg.AttachmentsFiles)
@@ -199,12 +117,19 @@ public sealed class GraphImporter : IDisposable
         {
             ["subject"] = msg.Subject,
             ["importance"] = MapImportance(msg.Importance),
-            ["isRead"] = msg.IsRead,
             ["body"] = new { contentType = html is not null ? "HTML" : "Text", content = html ?? text ?? "" },
             ["toRecipients"] = Recipients(msg.Recipients?.To),
             ["ccRecipients"] = Recipients(msg.Recipients?.Cc),
             ["sentDateTime"] = msg.SubmittedTime?.ToUniversalTime().ToString("o"),
             ["receivedDateTime"] = msg.ReceivedTime?.ToUniversalTime().ToString("o"),
+            // PR_MESSAGE_FLAGS (0x0E07): a real received message is MSGFLAG_READ (1) WITHOUT
+            // MSGFLAG_UNSENT (8). Default Graph-created messages have UNSENT set → shown as a draft
+            // ("This message hasn't been sent") with today's date. Stamping the flag here makes it a
+            // normal received item that keeps the receivedDateTime we set above.
+            ["singleValueExtendedProperties"] = new[]
+            {
+                new { id = "Integer 0x0E07", value = (msg.IsRead ? 1 : 0).ToString() },
+            },
         };
         var sender = msg.Recipients?.Sender;
         if (sender is not null && !string.IsNullOrWhiteSpace(sender.Address) && sender.Address.Contains('@'))
@@ -224,19 +149,6 @@ public sealed class GraphImporter : IDisposable
                 await UploadLargeAttachmentAsync(mailbox, messageId, a, ct);
         }
         return bytes;
-    }
-
-    private static MailboxAddress? TryAddr(string? name, string? address)
-    {
-        if (string.IsNullOrWhiteSpace(address) || !address.Contains('@')) return null;
-        try { return new MailboxAddress(name ?? "", address); } catch { return null; }
-    }
-
-    private static void AddAddrs(InternetAddressList list, IEnumerable<XstRecipient>? recipients)
-    {
-        if (recipients is null) return;
-        foreach (var r in recipients)
-            if (TryAddr(r.DisplayName, r.Address) is { } a) list.Add(a);
     }
 
     private object InlineAttachment(XstAttachment a)
