@@ -31,9 +31,13 @@ public sealed class GraphImporter : IDisposable
         _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
     }
 
-    public async Task<(int Imported, int Failed)> ImportPstAsync(string pstPath, string mailbox, string rootFolderName, CancellationToken ct)
+    public async Task<(int Imported, int Failed)> ImportPstAsync(string pstPath, string mailbox, string rootFolderName,
+        IProgress<ImportProgress>? progress, CancellationToken ct)
     {
-        int imported = 0, failed = 0;
+        int imported = 0, failed = 0, total = 0;
+        long bytesSent = 0;
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        var lastReport = TimeSpan.Zero;
         using var xst = new XstFile(pstPath);
 
         var rootId = await EnsureFolderAsync(mailbox, null, rootFolderName, ct);
@@ -43,6 +47,7 @@ public sealed class GraphImporter : IDisposable
         {
             var parentId = folder.ParentFolder?.Path is { } pp && map.TryGetValue(pp, out var pid) ? pid : rootId;
             map[folder.Path] = await EnsureFolderAsync(mailbox, parentId, folder.DisplayName ?? "Folder", ct);
+            total += folder.Messages.Count();   // header-only pass, lets us report % and ETA
         }
 
         foreach (var folder in EnumerateFolders(xst.RootFolder))
@@ -51,10 +56,17 @@ public sealed class GraphImporter : IDisposable
             foreach (var msg in folder.Messages)
             {
                 ct.ThrowIfCancellationRequested();
-                try { await CreateMessageAsync(mailbox, destId, msg, ct); imported++; }
+                try { bytesSent += await CreateMessageAsync(mailbox, destId, msg, ct); imported++; }
                 catch (Exception ex) { failed++; _logger.LogWarning("Import failed for '{Subject}': {Err}", msg.Subject, ex.Message); }
+
+                if (progress is not null && sw.Elapsed - lastReport >= TimeSpan.FromSeconds(5))
+                {
+                    lastReport = sw.Elapsed;
+                    progress.Report(new ImportProgress(imported, failed, total, bytesSent, sw.Elapsed));
+                }
             }
         }
+        progress?.Report(new ImportProgress(imported, failed, total, bytesSent, sw.Elapsed));
         return (imported, failed);
     }
 
@@ -83,7 +95,7 @@ public sealed class GraphImporter : IDisposable
         return cdoc.RootElement.GetProperty("id").GetString()!;
     }
 
-    private async Task CreateMessageAsync(string mailbox, string folderId, XstMessage msg, CancellationToken ct)
+    private async Task<long> CreateMessageAsync(string mailbox, string folderId, XstMessage msg, CancellationToken ct)
     {
         var html = msg.Body is { } b && string.Equals(b.Format.ToString(), "Html", StringComparison.OrdinalIgnoreCase) ? b.Text : null;
         var text = html is null ? msg.Body?.Text : null;
@@ -92,6 +104,8 @@ public sealed class GraphImporter : IDisposable
         var large = new List<XstAttachment>();
         foreach (var a in msg.AttachmentsFiles)
             (a.Size <= InlineLimit ? small : large).Add(a);
+        long bytes = Encoding.UTF8.GetByteCount(html ?? text ?? "")
+            + small.Sum(a => (long)a.Size) + large.Sum(a => (long)a.Size);
 
         var body = new Dictionary<string, object?>
         {
@@ -121,6 +135,7 @@ public sealed class GraphImporter : IDisposable
             foreach (var a in large)
                 await UploadLargeAttachmentAsync(mailbox, messageId, a, ct);
         }
+        return bytes;
     }
 
     private object InlineAttachment(XstAttachment a)
@@ -222,4 +237,26 @@ public sealed class GraphImporter : IDisposable
     }
 
     public void Dispose() => _http.Dispose();
+}
+
+/// <summary>Throughput snapshot reported during an import (items/s, MB/s, % done, ETA).</summary>
+public readonly record struct ImportProgress(int Imported, int Failed, int Total, long BytesSent, TimeSpan Elapsed)
+{
+    public double ItemsPerSec => Elapsed.TotalSeconds > 0 ? Imported / Elapsed.TotalSeconds : 0;
+    public double MBPerSec => Elapsed.TotalSeconds > 0 ? BytesSent / 1_048_576.0 / Elapsed.TotalSeconds : 0;
+    public double Percent => Total > 0 ? (Imported + Failed) * 100.0 / Total : 0;
+    public TimeSpan Eta
+    {
+        get
+        {
+            var done = Imported + Failed;
+            if (done <= 0 || Total <= done) return TimeSpan.Zero;
+            var perItem = Elapsed.TotalSeconds / done;
+            return TimeSpan.FromSeconds(perItem * (Total - done));
+        }
+    }
+
+    public string Summary() => Total > 0
+        ? $"{Imported}/{Total} ({Percent:F0}%) — {ItemsPerSec:F1} items/s, {MBPerSec:F2} MB/s, {BytesSent / 1_048_576.0:F1} MB, ETA {Eta:hh\\:mm\\:ss}"
+        : $"{Imported} items — {ItemsPerSec:F1} items/s, {MBPerSec:F2} MB/s, {BytesSent / 1_048_576.0:F1} MB";
 }

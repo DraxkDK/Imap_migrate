@@ -602,9 +602,15 @@ public class AgentWorker : BackgroundService
             {
                 ct.ThrowIfCancellationRequested();
                 await Log(_state.DeviceId, "GraphImport", "Info", $"Importing {Path.GetFileName(pst)} -> {mailbox} ...");
+                var name = Path.GetFileName(pst);
+                var progress = new Progress<ImportProgress>(p =>
+                {
+                    _logger.LogInformation("[{Pst}] {Summary}", name, p.Summary());
+                    _ = _portal.LogAsync(_state.DeviceId, "GraphImport", "Info", $"{name}: {p.Summary()}");
+                });
                 try
                 {
-                    var (imp, fail) = await importer.ImportPstAsync(pst, mailbox, rootFolder, ct);
+                    var (imp, fail) = await importer.ImportPstAsync(pst, mailbox, rootFolder, progress, ct);
                     totalImported += imp; totalFailed += fail;
                     await Log(_state.DeviceId, "GraphImport", fail > 0 ? "Warning" : "Info",
                         $"{Path.GetFileName(pst)}: {imp} imported, {fail} failed");
