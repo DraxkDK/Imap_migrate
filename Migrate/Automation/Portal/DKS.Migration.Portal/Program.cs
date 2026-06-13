@@ -24,6 +24,10 @@ builder.Services.AddDbContext<AppDbContext>(opt =>
     opt.UseSqlite(builder.Configuration.GetConnectionString("Default")
         ?? "Data Source=dks_migration.db"));
 
+// Microsoft 365 / Graph: encrypt client secrets at rest + broker app-only tokens.
+builder.Services.AddSingleton<SecretProtector>();
+builder.Services.AddSingleton<GraphTokenService>();
+
 // Cookie auth — every page requires login except those marked [AllowAnonymous]
 // (the login page and the agent API, which authenticates by token).
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
@@ -69,6 +73,13 @@ using (var scope = app.Services.CreateScope())
         );");
     db.Database.ExecuteSqlRaw(
         @"CREATE UNIQUE INDEX IF NOT EXISTS ""IX_PortalUsers_Username"" ON ""PortalUsers"" (""Username"");");
+
+    // Add the Graph app-registration columns to Customers on pre-existing DBs.
+    foreach (var col in new[] { "EntraTenantId", "GraphClientId", "ClientSecretEncrypted", "CertThumbprint", "CertLocation" })
+    {
+        try { db.Database.ExecuteSqlRaw($"ALTER TABLE \"Customers\" ADD COLUMN \"{col}\" TEXT"); }
+        catch { /* column already exists */ }
+    }
 
     // Seed a first admin if none exist. Override via env PORTAL_ADMIN_USER /
     // PORTAL_ADMIN_PASSWORD. Change the password right after first login.

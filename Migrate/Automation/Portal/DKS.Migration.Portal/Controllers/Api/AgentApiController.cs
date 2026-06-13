@@ -15,8 +15,35 @@ namespace DKS.Migration.Portal.Controllers.Api;
 public class AgentApiController : ControllerBase
 {
     private readonly AppDbContext _db;
+    private readonly DKS.Migration.Portal.Services.GraphTokenService _graphToken;
 
-    public AgentApiController(AppDbContext db) => _db = db;
+    public AgentApiController(AppDbContext db, DKS.Migration.Portal.Services.GraphTokenService graphToken)
+    {
+        _db = db;
+        _graphToken = graphToken;
+    }
+
+    // POST /api/agent/graph-token — agent exchanges its token for a short-lived
+    // Microsoft Graph token (portal holds the client secret/cert).
+    [HttpPost("graph-token")]
+    public async Task<IActionResult> GraphToken([FromBody] GraphTokenRequest req)
+    {
+        var token = await _db.AgentTokens
+            .Include(t => t.Batch).ThenInclude(b => b!.Customer)
+            .FirstOrDefaultAsync(t => t.Token == req.AgentToken && t.IsActive);
+        if (token?.Batch?.Customer is null)
+            return Unauthorized(new { error = "Invalid or inactive token." });
+
+        try
+        {
+            var (accessToken, expiresOn) = await _graphToken.GetTokenAsync(token.Batch.Customer, HttpContext.RequestAborted);
+            return Ok(new { accessToken, expiresOn });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
 
     // POST /api/agent/register
     [HttpPost("register")]
@@ -197,6 +224,7 @@ public class AgentApiController : ControllerBase
     }
 }
 
+public record GraphTokenRequest(string AgentToken);
 public record RegisterRequest(string AgentToken, string ComputerName, string? WindowsUsername, string? AgentVersion, string? OsVersion);
 public record CheckInRequest(int DeviceId, DeviceStatus Status, string? OutlookVersion, string? CurrentProfile, string? OldAccountType, string? OldEmail, string? NewMailbox, string? ErrorMessage);
 public record LogRequest(int DeviceId, string? Step, DKS.Migration.Portal.Models.LogLevel Level, string Message);

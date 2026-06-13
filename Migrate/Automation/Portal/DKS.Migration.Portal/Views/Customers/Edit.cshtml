@@ -24,6 +24,32 @@
                 <label asp-for="DestinationDomain" class="form-label fw-semibold"></label>
                 <input asp-for="DestinationDomain" class="form-control" />
             </div>
+
+            <hr />
+            <h6 class="fw-semibold">Microsoft 365 (Graph) — for cloud PST import</h6>
+            <p class="text-muted small">App-only auth. App ID = Client ID. Secret is encrypted at rest.</p>
+            <div class="mb-3">
+                <label class="form-label">Directory (tenant) ID</label>
+                <input asp-for="EntraTenantId" class="form-control" />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Application (client) ID</label>
+                <input asp-for="GraphClientId" class="form-control" />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Client secret @(string.IsNullOrEmpty(Model.ClientSecretEncrypted) ? "(not set)" : "— leave blank to keep current")</label>
+                <input name="clientSecret" type="password" class="form-control" placeholder="@(string.IsNullOrEmpty(Model.ClientSecretEncrypted) ? "paste client secret" : "•••••• stored")" />
+            </div>
+            <details class="mb-3">
+                <summary class="small text-muted">Use a certificate instead (optional, more secure)</summary>
+                <div class="mt-2">
+                    <label class="form-label">Certificate thumbprint</label>
+                    <input asp-for="CertThumbprint" class="form-control mb-2" />
+                    <label class="form-label">Certificate location</label>
+                    <input asp-for="CertLocation" class="form-control" placeholder="store:CurrentUser/My or file:/path/cert.pfx" />
+                </div>
+            </details>
+
             <div class="d-flex gap-2">
                 <button type="submit" class="btn btn-primary">Update</button>
                 <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>

@@ -46,6 +46,10 @@
           "framework": "net8.0",
           "targetAlias": "net8.0",
           "dependencies": {
+            "Azure.Identity": {
+              "target": "Package",
+              "version": "[1.13.1, )"
+            },
             "CsvHelper": {
               "target": "Package",
               "version": "[33.0.1, )"
