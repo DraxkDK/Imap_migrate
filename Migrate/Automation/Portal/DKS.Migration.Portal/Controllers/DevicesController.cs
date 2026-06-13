@@ -53,6 +53,25 @@ public class DevicesController : Controller
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    /// <summary>Set the target M365 mailbox directly on a device (no CSV user mapping needed).</summary>
+    [HttpPost]
+    public async Task<IActionResult> SetMailbox(int id, string? mailbox)
+    {
+        var device = await _db.Devices.FindAsync(id);
+        if (device == null) return NotFound();
+        device.NewMailbox = string.IsNullOrWhiteSpace(mailbox) ? null : mailbox.Trim();
+        _db.Logs.Add(new DeviceLog
+        {
+            DeviceId = id,
+            Step = "SetMailbox",
+            Level = Models.LogLevel.Info,
+            Message = $"Target M365 mailbox set to '{device.NewMailbox ?? "(none)"}' from portal.",
+        });
+        await _db.SaveChangesAsync();
+        TempData["Success"] = $"Target mailbox set to '{device.NewMailbox ?? "(none)"}'. Agent picks it up on next check-in (~30s).";
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
     [HttpPost]
     public async Task<IActionResult> MarkManualCompleted(int id)
     {

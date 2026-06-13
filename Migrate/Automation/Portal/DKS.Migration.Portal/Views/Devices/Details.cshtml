@@ -39,6 +39,20 @@
         <div class="card h-100">
             <div class="card-header">Actions</div>
             <div class="card-body">
+                <form asp-action="SetMailbox" asp-route-id="@Model.DeviceId" method="post" class="mb-3">
+                    @Html.AntiForgeryToken()
+                    <label class="form-label small text-muted mb-1">Target M365 mailbox (sign-in email) — required for Import to M365</label>
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text">&#9729;</span>
+                        <input type="email" name="mailbox" value="@Model.NewMailbox" class="form-control"
+                               placeholder="user@yourtenant.com" />
+                        <button class="btn btn-outline-primary" type="submit">Save mailbox</button>
+                    </div>
+                    @if (string.IsNullOrWhiteSpace(Model.NewMailbox))
+                    {
+                        <div class="form-text text-warning">No target mailbox set — Import to M365 will fail until you set this.</div>
+                    }
+                </form>
                 <div class="row g-2">
                     @foreach (var (cmd, label, cls) in new[]{ ("ScanOutlook","Scan Outlook","outline-primary"), ("ExportPst","Export PST","outline-warning"), ("ImportToM365","Import to M365 (Graph)","success"), ("ReconfigureProfile","Reconfigure Profile","outline-info"), ("ImportPst","Import PST (Outlook)","outline-success"), ("RetryFailed","Retry Failed Step","outline-secondary"), ("Rollback","Rollback Profile","outline-danger") })
                     {

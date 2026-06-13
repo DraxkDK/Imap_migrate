@@ -62,7 +62,7 @@ public class PortalClient
         }
     }
 
-    public async Task<string?> CheckInAsync(int deviceId, string status, string? outlookVersion = null,
+    public async Task<CheckInResult?> CheckInAsync(int deviceId, string status, string? outlookVersion = null,
         string? currentProfile = null, string? oldAccountType = null,
         string? oldEmail = null, string? newMailbox = null, string? errorMessage = null)
     {
@@ -73,7 +73,8 @@ public class PortalClient
             if (resp.IsSuccessStatusCode)
             {
                 var result = await resp.Content.ReadFromJsonAsync<CheckInResponse>(_json);
-                return result?.PendingCommand;
+                if (result == null) return null;
+                return new CheckInResult(result.PendingCommand, result.TargetMailbox);
             }
         }
         catch (Exception ex)
@@ -83,7 +84,10 @@ public class PortalClient
         return null;
     }
 
-    private record CheckInResponse(bool Ok, string? PendingCommand);
+    private record CheckInResponse(bool Ok, string? PendingCommand, string? TargetMailbox);
+
+    /// <summary>Result of a check-in: the queued command (if any) and the latest target mailbox from the portal.</summary>
+    public record CheckInResult(string? PendingCommand, string? TargetMailbox);
 
     public async Task<string?> GetGraphTokenAsync()
     {

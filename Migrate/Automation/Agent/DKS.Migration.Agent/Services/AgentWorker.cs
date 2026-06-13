@@ -59,9 +59,13 @@ public class AgentWorker : BackgroundService
                     if (_state.CurrentStep == "WaitingForSignIn")
                         await PollSignInAndImportAsync(ct);
 
-                    var command = await _portal.CheckInAsync(_state.DeviceId, _state.CurrentStep);
-                    if (!string.IsNullOrEmpty(command))
-                        await ExecuteCommandAsync(command, ct);
+                    var checkIn = await _portal.CheckInAsync(_state.DeviceId, _state.CurrentStep);
+                    // Refresh the target mailbox from the portal each cycle so an admin can
+                    // set/change it without restarting the agent.
+                    if (!string.IsNullOrWhiteSpace(checkIn?.TargetMailbox))
+                        _state.TargetMailbox = checkIn.TargetMailbox;
+                    if (!string.IsNullOrEmpty(checkIn?.PendingCommand))
+                        await ExecuteCommandAsync(checkIn.PendingCommand, ct);
                 }
             }
             catch (OperationCanceledException) { break; }

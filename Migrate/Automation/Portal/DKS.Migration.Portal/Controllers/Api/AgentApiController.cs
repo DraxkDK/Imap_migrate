@@ -114,10 +114,12 @@ public class AgentApiController : ControllerBase
             closeOutlookAutomatically = token.Batch?.CloseOutlookAutomatically ?? true,
             importTargetFolder = token.Batch?.ImportTargetFolder,
             rollbackEnabled = token.Batch?.RollbackEnabled ?? true,
-            // User mapping — agent dùng để cấu hình AutoDiscover
+            // User mapping — agent dùng để cấu hình AutoDiscover.
+            // Fall back to the mailbox set directly on the device (Device Details page)
+            // so a Graph import works without a full CSV user mapping.
             oldEmail = userMapping?.OldEmail,
-            newEmail = userMapping?.NewEmail,
-            targetMailbox = userMapping?.TargetMailbox ?? userMapping?.NewEmail,
+            newEmail = userMapping?.NewEmail ?? device.NewMailbox,
+            targetMailbox = userMapping?.TargetMailbox ?? userMapping?.NewEmail ?? device.NewMailbox,
             fullName = userMapping?.FullName
         });
     }
@@ -143,7 +145,9 @@ public class AgentApiController : ControllerBase
         device.PendingCommand = null;
 
         await _db.SaveChangesAsync();
-        return Ok(new { ok = true, pendingCommand = command });
+        // Return the current target mailbox so the agent can pick it up (or a change)
+        // without needing a restart/re-register.
+        return Ok(new { ok = true, pendingCommand = command, targetMailbox = device.NewMailbox });
     }
 
     // POST /api/agent/log
