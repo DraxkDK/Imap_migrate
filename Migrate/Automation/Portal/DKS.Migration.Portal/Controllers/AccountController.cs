@@ -136,7 +136,11 @@ public class AccountController : Controller
             }
             user.TotpEnabled = true;
             await _db.SaveChangesAsync();
+            // Refresh the cookie so the "mfa" claim becomes "enabled" and the RequireMfa
+            // middleware lets the user into the rest of the portal in this same session.
+            await SignInAsync(user);
             TempData["Success"] = "Đã bật xác thực 2 lớp (MFA). Lần đăng nhập sau sẽ cần mã từ app.";
+            return RedirectToAction("Index", "Home");
         }
         return RedirectToAction(nameof(Mfa));
     }
@@ -212,6 +216,8 @@ public class AccountController : Controller
         {
             new(ClaimTypes.Name, user.Username),
             new(ClaimTypes.Role, user.Role),
+            // Lets the RequireMfa middleware allow the user through without a per-request DB hit.
+            new("mfa", user.TotpEnabled ? "enabled" : "none"),
         };
         var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
         await HttpContext.SignInAsync(

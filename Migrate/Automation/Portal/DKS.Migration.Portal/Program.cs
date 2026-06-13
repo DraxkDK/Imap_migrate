@@ -199,6 +199,31 @@ app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 
+// Require MFA: an authenticated user without MFA enabled is forced to the enrolment
+// page before they can use anything else. Toggle with Security:RequireMfa (default true).
+var requireMfa = app.Configuration.GetValue("Security:RequireMfa", true);
+app.Use(async (ctx, next) =>
+{
+    if (requireMfa
+        && ctx.User?.Identity?.IsAuthenticated == true
+        && ctx.User.FindFirst("mfa")?.Value != "enabled")
+    {
+        var p = ctx.Request.Path;
+        var allowed =
+            p.StartsWithSegments("/Account/Mfa") ||
+            p.StartsWithSegments("/Account/Logout") ||
+            p.StartsWithSegments("/api/agent") ||
+            p.StartsWithSegments("/lib") || p.StartsWithSegments("/css") ||
+            p.StartsWithSegments("/js") || p.StartsWithSegments("/favicon.ico");
+        if (!allowed)
+        {
+            ctx.Response.Redirect("/Account/Mfa");
+            return;
+        }
+    }
+    await next();
+});
+
 // Viewer role is read-only: block state-changing verbs for viewers, except the
 // agent API and their own account actions (logout / change password).
 app.Use(async (ctx, next) =>
